@@ -124,9 +124,8 @@ namespace Apps4Bro
                     lock(m_syncRoot)
                         m_pendingEvents.AddFirst(data);
 
-                    HttpWebRequest request = HttpWebRequest.Create(FormatRequest(data));
-                    request.ProtocolVersion = HttpVersion.Version20;
-                    request.UserAgent = "WinHTTP";
+                    WebRequest request = WebRequest.Create(FormatRequest(data));
+                    request.Headers[HttpRequestHeader.UserAgent] = "WinHTTP";
                     request.ContentType = "application/text";
                     request.Method = "GET";
 #if !NETFX_CORE

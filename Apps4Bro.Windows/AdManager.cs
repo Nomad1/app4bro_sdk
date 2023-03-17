@@ -143,9 +143,8 @@ namespace Apps4Bro
             }
 
             m_context = context;
-            HttpWebRequest request = HttpWebRequest.Create(FormatRequest());
-            request.ProtocolVersion = HttpVersion.Version20;
-            request.UserAgent = "WinHTTP";
+            WebRequest request = WebRequest.Create(FormatRequest());
+            request.Headers[HttpRequestHeader.UserAgent] = "WinHTTP";
             request.ContentType = "application/text";
             request.Method = "GET";
 #if !NETFX_CORE
