@@ -111,7 +111,9 @@ namespace Apps4Bro
                         m_pendingEvents[data.ID] = data;
 
 #if !__IOS__
-                        WebRequest request = HttpWebRequest.Create(FormatRequest(data));
+                        HttpWebRequest request = HttpWebRequest.Create(FormatRequest(data));
+                        request.ProtocolVersion = HttpVersion.Version20;
+                        request.UserAgent = "WinHTTP";
                         request.ContentType = "application/text";
                         request.Method = "GET";
                         request.Timeout = 5000;
