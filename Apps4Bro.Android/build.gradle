@@ -1,0 +1,33 @@
+//noinspection GradleCompatible
+apply plugin: 'com.android.library'
+
+repositories {
+    maven { url "https://maven.google.com/" }
+    jcenter()
+}
+
+dependencies {
+    compile 'com.google.android.gms:play-services-ads:16.0+'
+
+    compile fileTree(include: '*.jar', dir: 'libs')
+
+}
+
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion '20.0.0'
+
+    aaptOptions { ignoreAssetsPattern "!values-b+sr+Latn" }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+}

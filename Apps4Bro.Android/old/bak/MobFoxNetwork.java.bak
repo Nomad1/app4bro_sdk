@@ -1,0 +1,152 @@
+package net.runserver.apps4bro;
+
+import com.mobfox.sdk.interstitialads.InterstitialAd;
+import com.mobfox.sdk.interstitialads.InterstitialAdListener;
+
+import android.app.Activity;
+import android.util.Log;
+
+class MobFoxNetwork implements AdNetworkHandler
+{
+    private final static String TAG = "MobFox";
+
+    private final AdManager m_manager;
+
+    public String getNetwork()
+    {
+        return TAG;
+    }
+
+    public MobFoxNetwork(AdManager manager)
+    {
+        m_manager = manager;
+    }
+
+    public AdObject request(final String id, final Object data)
+    {
+        Log.d(TAG, "Running network " + getNetwork() + "[" + id + "]");
+
+        final InterstitialAd interstitial = new InterstitialAd ((Activity) m_manager.getContext());
+
+        MobFoxAd result = new MobFoxAd(id, interstitial, data);
+
+        interstitial.setListener(result);
+        interstitial.setInventoryHash(id);
+        interstitial.load();
+
+        return result;
+    }
+
+    class MobFoxAd implements InterstitialAdListener, AdObject
+    {
+        private final String m_id;
+        private final InterstitialAd m_interstitial;
+        private final Object m_data;
+        private AdState m_state;
+
+        public String getId()
+        {
+            return m_id;
+        }
+
+        public AdState getState()
+        {
+            return m_state;
+        }
+
+        public MobFoxAd(String id, InterstitialAd interstitial, Object data)
+        {
+            m_id = id;
+            m_interstitial = interstitial;
+            m_data = data;
+            m_state = AdState.Loading;
+        }
+
+        public boolean show()
+        {
+            try
+            {
+                if (!m_interstitial.isReady())
+                {
+                    m_state = AdState.Failed;
+                    return false;
+                }
+
+                if (m_manager.isTimedOut())
+                {
+                    Log.e(TAG, "Ad loading timed out!");
+                    return false;
+                }
+
+                m_state = AdState.Used; // consume ad
+
+                m_interstitial.show();
+                //m_interstitial.onResume();
+                m_manager.adShown(m_data, null);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+                m_state = AdState.Failed;
+                return false;
+            }
+        }
+
+        public void hide()
+        {
+            m_state = AdState.Closed;
+
+            m_interstitial.onPause();
+        }
+
+        @Override
+        public void onInterstitialLoaded(InterstitialAd interstitial)
+        {
+            m_state = AdState.Ready;
+
+            m_manager.adReady(m_data);
+        }
+
+        @Override
+        public void onInterstitialFailed(InterstitialAd interstitial, Exception e)
+        {
+            m_state = AdState.Failed;
+
+            m_manager.adError(m_data, "MobFox Failed to load ad: " + e);
+        }
+
+        @Override
+        public void onInterstitialShown(InterstitialAd interstitial)
+        {
+            m_state = AdState.Used;
+
+            m_manager.adShown(m_data, interstitial);
+        }
+
+        @Override
+        public void onInterstitialClicked(InterstitialAd interstitial)
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClick(m_data);
+        }
+
+        @Override
+        public void onInterstitialClosed(InterstitialAd interstitial)
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClosed(m_data);
+        }
+
+        @Override
+        public void onInterstitialFinished()
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClosed(m_data);
+        }
+    }
+}
