@@ -87,6 +87,8 @@ namespace Apps4Bro.Networks
             Panel bannerGrid = m_data as Panel;
             if (bannerGrid != null)
                 bannerGrid.Children.Clear();
+
+            GC.Collect();
         }
 
         public override void Display()
