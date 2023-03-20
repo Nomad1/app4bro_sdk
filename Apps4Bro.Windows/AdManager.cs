@@ -62,8 +62,9 @@ namespace Apps4Bro
 
             m_reportManager = new ReportManager(m_appId);
 
+#if VERBOSE_LOG
             m_reportManager.ReportEvent("AD_START", Apps4BroSDK.Version.ToString());
-
+#endif
             m_adNetworks = new Dictionary<string, AdNetworkHandler>();
 
             // Registering built-in SDKs
@@ -303,11 +304,10 @@ namespace Apps4Bro
                 return;
             }
 
-            AdWrapper wrapper = null;
             try
             {
                 m_adShown = false;
-                wrapper = m_adWrappers[m_currentWrapper];
+                AdWrapper wrapper = m_adWrappers[m_currentWrapper];
                 wrapper.AdNetworkHandler.Hide();
                 Debug.WriteLine("Called hide ad for network " + wrapper.AdNetworkHandler.Network);
             }
@@ -395,12 +395,16 @@ namespace Apps4Bro
                     networkName = wrapper.Name;
                     wrapper.SuccessCount++;
                     Debug.WriteLine("Loaded ad from {0} [{1}/{2}/{3}/{4}]", networkName, wrapper.CallCount, wrapper.SuccessCount, wrapper.FailCount, wrapper.ClickCount);
+#if VERBOSE_LOG
                     m_reportManager.ReportEvent("AD_LOAD", string.Format("{0} [{1}/{2}/{3}/{4}]", networkName, wrapper.CallCount, wrapper.SuccessCount, wrapper.FailCount, wrapper.ClickCount));
+#endif
                 }
                 else
                 {
                     Debug.WriteLine("Loaded ad from " + networkName);
+#if VERBOSE_LOG
                     m_reportManager.ReportEvent("AD_LOAD", "");
+#endif
                 }
 
             }
@@ -476,12 +480,16 @@ namespace Apps4Bro
                     networkName = wrapper.Name;
                     wrapper.ShowCount++;
                     Debug.WriteLine("Shown ad from {0} [{1}/{2}/{3}/{4}/{5}]", networkName, wrapper.CallCount, wrapper.SuccessCount, wrapper.FailCount, wrapper.ClickCount, wrapper.ShowCount);
+#if VERBOSE_LOG
                     m_reportManager.ReportEvent("AD_SHOW", string.Format("{0} [{1}/{2}/{3}/{4}/{5}]", networkName, wrapper.CallCount, wrapper.SuccessCount, wrapper.FailCount, wrapper.ClickCount, wrapper.ShowCount));
+#endif                
                 }
                 else
                 {
                     Debug.WriteLine("Shown ad from " + networkName);
+#if VERBOSE_LOG
                     m_reportManager.ReportEvent("AD_SHOW", networkName);
+#endif
                 }
             }
             finally

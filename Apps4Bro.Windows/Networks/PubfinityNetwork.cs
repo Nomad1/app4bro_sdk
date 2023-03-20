@@ -11,6 +11,8 @@ namespace Apps4Bro.Networks
 {
     internal class PubfinityNetwork : BaseNetwork
     {
+		private static bool s_inited = false;
+
         private BannerControl m_pubfinityAdControl;
 
         public override string Network
@@ -34,12 +36,12 @@ namespace Apps4Bro.Networks
                 if (bannerGrid == null)
                     return false;
 
-                if (!Pubfinity.GetInstance().HasInitializationFinishedSuccessfully())
+                if (!s_inited && !Pubfinity.GetInstance().HasInitializationFinishedSuccessfully())
                 {
                     PubfinitySDKCoreInitializationParameters pubfinityInitParams = new PubfinitySDKCoreInitializationParameters();
 
                     PubfinitySDKConsentDeskInitializationParameters consentDeskInitParams = new PubfinitySDKConsentDeskInitializationParameters();
-                    consentDeskInitParams.PrivacySettingsPublisherCountryCode = "UA";
+                    consentDeskInitParams.PrivacySettingsPublisherCountryCode = "US";
                     consentDeskInitParams.PrivacySettingsDigitalPropertiesUrl = "https://runserver.net/apps/";
                     consentDeskInitParams.PrivacySettingsLogoUrl = "https://runserver.net/app4bro/apps/logo_new.png";
                     consentDeskInitParams.OptionalAppName = "Classic Solitaire"; // This is used for analytics 
@@ -51,7 +53,9 @@ namespace Apps4Bro.Networks
 
                     Pubfinity.GetInstance().StatusEvent += onPubfinity_SDKStatus;
                     Pubfinity.GetInstance().Initialize(pubfinityInitParams);
-                }
+
+					s_inited = true;
+				}
 
                 BannerControl adControl = new BannerControl();
                 adControl.Width = 728;
@@ -74,7 +78,7 @@ namespace Apps4Bro.Networks
             catch (Exception ex)
             {
                 Debug.WriteLine("Failed to init Pubfinity advertising: " + ex);
-                m_adManager.ReportManager.ReportEvent("PUBFINITY_ERROR", ex.ToString());
+                m_adManager.ReportManager.ReportEvent("PUBFINITY_EXCEPTION", ex.ToString());
                 m_pubfinityAdControl = null;
             }
 
@@ -100,7 +104,7 @@ namespace Apps4Bro.Networks
         {
             if (arg.GetOptionalError() != null)
             {
-                Debug.WriteLine("Failed to init Pubfinity advertising: " + arg.GetOptionalError().ErrorMessage);
+                Debug.WriteLine("Failed to use Pubfinity advertising: " + arg.GetOptionalError().ErrorMessage);
                 m_adManager.ReportManager.ReportEvent("PUBFINITY_ERROR", arg.GetOptionalError().ErrorMessage);
                 m_pubfinityAdControl = null;
             }
