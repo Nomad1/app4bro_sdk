@@ -36,8 +36,10 @@ namespace Apps4Bro.Networks
                 if (bannerGrid == null)
                     return false;
 
-                if (!s_inited && !Pubfinity.GetInstance().HasInitializationFinishedSuccessfully())
+                if (!s_inited)
                 {
+                    s_inited = true;
+
                     PubfinitySDKCoreInitializationParameters pubfinityInitParams = new PubfinitySDKCoreInitializationParameters();
 
                     PubfinitySDKConsentDeskInitializationParameters consentDeskInitParams = new PubfinitySDKConsentDeskInitializationParameters();
@@ -54,7 +56,7 @@ namespace Apps4Bro.Networks
                     Pubfinity.GetInstance().StatusEvent += onPubfinity_SDKStatus;
                     Pubfinity.GetInstance().Initialize(pubfinityInitParams);
 
-					s_inited = true;
+					
 				}
 
                 BannerControl adControl = new BannerControl();
@@ -67,8 +69,6 @@ namespace Apps4Bro.Networks
                 adControl.AdClickedEvent += onPubfinity_AdClickEvent;
                 adControl.AdErrorEvent += onPubfinity_AdErrorEvent;
 
-                //bannerGrid.Visibility = Visibility.Visible;
-                //bannerGrid.Opacity = 1;
                 bannerGrid.Children.Add(adControl);
 
                 m_pubfinityAdControl = adControl;
@@ -80,6 +80,7 @@ namespace Apps4Bro.Networks
                 Debug.WriteLine("Failed to init Pubfinity advertising: " + ex);
                 m_adManager.ReportManager.ReportEvent("PUBFINITY_EXCEPTION", ex.ToString());
                 m_pubfinityAdControl = null;
+                s_inited = false;
             }
 
             return true;
@@ -107,6 +108,7 @@ namespace Apps4Bro.Networks
                 Debug.WriteLine("Failed to use Pubfinity advertising: " + arg.GetOptionalError().ErrorMessage);
                 m_adManager.ReportManager.ReportEvent("PUBFINITY_ERROR", arg.GetOptionalError().ErrorMessage);
                 m_pubfinityAdControl = null;
+                s_inited = false;
             }
         }
 
