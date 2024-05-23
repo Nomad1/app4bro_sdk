@@ -1,0 +1,288 @@
+package net.runserver.apps4bro;
+
+import android.app.Activity;
+import android.util.Log;
+
+import com.appodeal.ads.Appodeal;
+import com.appodeal.ads.InterstitialCallbacks;
+import com.appodeal.ads.NonSkippableVideoCallbacks;
+
+class AppodealNetwork implements AdNetworkHandler
+{
+    private final static String TAG = "ApoDeal";
+
+    private final AdManager m_manager;
+    private AppodealAd m_ad;
+    private int m_mask;
+
+    public String getNetwork()
+    {
+        return TAG;
+    }
+
+    public AppodealNetwork(AdManager manager)
+    {
+        m_manager = manager;
+    }
+
+    public AdObject request(final String id, final Object data)
+    {
+        Activity context = (Activity) m_manager.getContext();
+
+        if (m_ad == null)
+        {
+            m_mask = Appodeal.INTERSTITIAL;// | Appodeal.SKIPPABLE_VIDEO | Appodeal.NON_SKIPPABLE_VIDEO;
+
+            //Appodeal.disableNetwork(context, "chartboost");
+
+            Appodeal.disableNetwork(context, "applovin");
+            //Appodeal.disableNetwork(context, "unity_ads");
+            Appodeal.disableNetwork(context, "adcolony");
+            Appodeal.disableNetwork(context, "admob");
+
+            //Appodeal.confirm(Appodeal.SKIPPABLE_VIDEO);
+
+            Appodeal.initialize(context, id, m_mask/*, false*/);
+
+            //Appodeal.setTesting(true);
+
+            m_ad = new AppodealAd(id, data);
+
+            Appodeal.setInterstitialCallbacks(m_ad);
+
+            //Appodeal.setSkippableVideoCallbacks(m_ad);
+
+            if ((m_mask & Appodeal.NON_SKIPPABLE_VIDEO) != 0)
+                Appodeal.setNonSkippableVideoCallbacks(m_ad);
+
+            Appodeal.cache(context, m_mask);
+        }
+
+        if (m_ad.getState() != AdState.Loading && m_ad.getState() != AdState.Ready)
+        { // if old ad is ready we can show it instantly. If old ad is still loading, we'll keep it as is
+            Appodeal.cache(context, m_mask);
+        }
+
+        return m_ad;
+    }
+
+
+    class AppodealAd implements AdObject, InterstitialCallbacks, NonSkippableVideoCallbacks//, SkippableVideoCallbacks
+    {
+        private final String m_id;
+        private final Object m_data;
+
+        private AdState m_state;
+
+        public String getId()
+        {
+            return m_id;
+        }
+
+        public AdState getState()
+        {
+            return m_state;
+        }
+
+        public AppodealAd(String id, Object data)
+        {
+            m_id = id;
+            m_data = data;
+            m_state = AdState.Loading;
+        }
+
+        @Override
+        public boolean show()
+        {
+            try
+            {
+                if (!Appodeal.isLoaded(m_mask))
+                {
+                    m_state = AdState.Failed;
+                    return false;
+                }
+
+                if (m_manager.isTimedOut())
+                {
+                    Log.e(TAG, "Ad loading timed out!");
+                    return false;
+                }
+
+                m_state = AdState.Used; // consume ad
+
+                Appodeal.show((Activity) m_manager.getContext(), m_mask);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+                m_state = AdState.Failed;
+                return false;
+            }
+        }
+
+        @Override
+        public void hide()
+        {
+            m_state = AdState.Closed;
+
+            Appodeal.hide((Activity) m_manager.getContext(), m_mask);
+        }
+
+        @Override
+        public void onInterstitialLoaded(boolean type)
+        {
+            m_state = AdState.Ready;
+
+            m_manager.adReady(m_data);
+        }
+
+        @Override
+        public void onInterstitialFailedToLoad()
+        {
+            m_state = AdState.Failed;
+
+            m_manager.adError(m_data, "AppoDeal Interstitial Ad failed to load");
+        }
+
+        @Override
+        public void onInterstitialShown()
+        {
+            m_state = AdState.Used;
+
+            m_manager.adShown(m_data, null);
+        }
+
+        @Override
+        public void onInterstitialShowFailed()
+        {
+            m_state = AdState.Failed;
+
+            m_manager.adError(m_data, "AppoDeal Interstitial Ad failed to load");
+        }
+
+        @Override
+        public void onInterstitialClicked()
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClick(m_data);
+        }
+
+        @Override
+        public void onInterstitialClosed()
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClosed(m_data);
+        }
+
+        @Override
+        public void onInterstitialExpired()
+        {
+            m_state = AdState.Failed;
+        }
+
+        /*
+                @Override
+                public void onSkippableVideoLoaded()
+                {
+                    m_state = AdState.Ready;
+
+                    m_manager.adReady(m_data);
+                }
+
+                @Override
+                public void onSkippableVideoFailedToLoad()
+                {
+                    m_state = AdState.Failed;
+
+                    m_manager.adError(m_data, "AppoDeal SkippableVideo Ad failed to load");
+                }
+
+                @Override
+                public void onSkippableVideoShown()
+                {
+                    m_state = AdState.Used;
+
+                    m_manager.adShown(m_data, null);
+                }
+
+                @Override
+                public void onSkippableVideoFinished()
+                {
+                    m_state = AdState.Closed;
+
+                    m_manager.adClosed(m_data);
+                }
+
+                @Override
+                public void onSkippableVideoClosed(boolean b)
+                {
+                    m_state = AdState.Closed;
+
+                    if (b)
+                        m_manager.adClick(m_data);
+                    else
+                        m_manager.adClosed(m_data);
+                }
+
+       */
+
+        @Override
+        public void onNonSkippableVideoLoaded(boolean b)
+        {
+        m_state = AdState.Ready;
+
+            m_manager.adReady(m_data);
+        }
+
+        @Override
+        public void onNonSkippableVideoFailedToLoad()
+        {
+            m_state = AdState.Failed;
+
+            m_manager.adError(m_data, "AppoDeal NonSkippableVideo Ad failed to load");
+        }
+
+        @Override
+        public void onNonSkippableVideoShown()
+        {
+            m_state = AdState.Used;
+
+            m_manager.adShown(m_data, null);
+        }
+
+        @Override
+        public void onNonSkippableVideoShowFailed()
+        {
+            m_state = AdState.Failed;
+
+            m_manager.adError(m_data, "AppoDeal NonSkippableVideo Ad failed to load");
+        }
+
+        @Override
+        public void onNonSkippableVideoFinished()
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClosed(m_data);
+        }
+
+        @Override
+        public void onNonSkippableVideoClosed(boolean b)
+        {
+            m_state = AdState.Closed;
+            if (b)
+                m_manager.adClick(m_data);
+            else
+                m_manager.adClosed(m_data);
+        }
+
+        @Override
+        public void onNonSkippableVideoExpired()
+        {
+            m_state = AdState.Failed;
+        }
+    }
+}

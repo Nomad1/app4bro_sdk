@@ -1,5 +1,8 @@
 package net.runserver.apps4bro;
 
+import java.net.URLEncoder;
+import java.util.Locale;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -9,36 +12,35 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings.LayoutAlgorithm;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
-import java.net.URLEncoder;
-import java.util.Locale;
-
 class HouseNetwork implements AdNetworkHandler
 {
     private final static String TAG = "House";
+
+    private final AdManager m_manager;
 
     public String getNetwork()
     {
         return TAG;
     }
 
-    public HouseNetwork()
+    public HouseNetwork(AdManager manager)
     {
+        m_manager = manager;
     }
 
-    public AdObject request(final AdManager manager, final String id, final Object data)
+    public AdObject request(final String id, final Object data)
     {
         Log.d(TAG, "Running network " + getNetwork() + "[" + id + "]");
 
-        HouseBannerView bannerView = new HouseBannerView(manager.getApplicationContext(), id, Apps4BroSDK.HouseAdTimeout);
+        HouseBannerView bannerView = new HouseBannerView(m_manager.getContext(), id, Apps4BroSDK.HouseAdTimeout);
 
-        HouseAd result = new HouseAd(manager, id, bannerView, data);
+        HouseAd result = new HouseAd(id, bannerView, data);
 
         bannerView.setListener(result);
 
@@ -52,29 +54,27 @@ class HouseNetwork implements AdNetworkHandler
         private final String m_id;
         private final HouseBannerView m_interstitial;
         private final Object m_data;
-        private AdEnums.AdState m_state;
-        private final AdManager m_manager;
+        private AdState m_state;
 
         public String getId()
         {
             return m_id;
         }
 
-        public AdEnums.AdState getState()
+        public AdState getState()
         {
             return m_state;
         }
 
-        public HouseAd(final AdManager manager, String id, HouseBannerView interstitial, Object data)
+        public HouseAd(String id, HouseBannerView interstitial, Object data)
         {
             m_id = id;
             m_interstitial = interstitial;
             m_data = data;
-            m_manager = manager;
-            m_state = AdEnums.AdState.Loading;
+            m_state = AdState.Loading;
         }
 
-        public boolean show(Activity activity)
+        public boolean show()
         {
             try
             {
@@ -84,9 +84,15 @@ class HouseNetwork implements AdNetworkHandler
 					return false;
 				}*/
 
-                m_state = AdEnums.AdState.Shown; // consume ad
+                if (m_manager.isTimedOut())
+                {
+                    Log.e(TAG, "Ad loading timed out!");
+                    return false;
+                }
 
-                m_interstitial.show(activity);
+                m_state = AdState.Used; // consume ad
+
+                m_interstitial.show();
                 m_manager.adShown(m_data, null);
 
                 return true;
@@ -94,14 +100,14 @@ class HouseNetwork implements AdNetworkHandler
             catch (Exception ex)
             {
                 ex.printStackTrace();
-                m_state = AdEnums.AdState.Failed;
+                m_state = AdState.Failed;
                 return false;
             }
         }
 
         public void hide()
         {
-            m_state = AdEnums.AdState.Closed;
+            m_state = AdState.Closed;
 
             m_interstitial.hide();
             m_interstitial.destroy();
@@ -125,7 +131,7 @@ class HouseNetwork implements AdNetworkHandler
         @Override
         public void onError(String error)
         {
-            m_state = AdEnums.AdState.Failed;
+            m_state = AdState.Failed;
             m_manager.adError(m_data, "Error " + error);
             hide();
         }
@@ -133,14 +139,14 @@ class HouseNetwork implements AdNetworkHandler
         @Override
         public void onLoad()
         {
-            m_state = AdEnums.AdState.Ready;
+            m_state = AdState.Ready;
 
             m_manager.adReady(m_data);
         }
 
         public void onDisplay()
         {
-            m_state = AdEnums.AdState.Shown;
+            m_state = AdState.Used;
 
             m_manager.adShown(m_data, m_interstitial);
         }
@@ -189,7 +195,7 @@ class HouseNetwork implements AdNetworkHandler
         @SuppressWarnings("deprecation")
         public void load()
         {
-//            Context context = getContext();
+            Activity activity = (Activity) getContext();
 
             getSettings().setUseWideViewPort(true);
             //s.setBuiltInZoomControls(true);
@@ -301,15 +307,13 @@ class HouseNetwork implements AdNetworkHandler
 
             try
             {
-                Context appContext = getContext();
-                WindowManager windowManager = (WindowManager) appContext.getSystemService(Context.WINDOW_SERVICE);
-                int w = windowManager.getDefaultDisplay().getWidth();
-                int h = windowManager.getDefaultDisplay().getHeight();
+                int w = activity.getWindowManager().getDefaultDisplay().getWidth();
+                int h = activity.getWindowManager().getDefaultDisplay().getHeight();
 
-                TelephonyManager manager = (TelephonyManager) appContext.getSystemService(Context.TELEPHONY_SERVICE);
+                TelephonyManager manager = (TelephonyManager) activity.getSystemService(Context.TELEPHONY_SERVICE);
                 String carrierName = manager.getNetworkOperatorName();
 
-                String url = String.format(Apps4BroSDK.HouseAdUrl, m_zoneId, appContext.getPackageName(), URLEncoder.encode(Build.MANUFACTURER), URLEncoder.encode(Build.MODEL), URLEncoder.encode(carrierName), w, h, Locale.getDefault().getLanguage(), Apps4BroSDK.Version, Apps4BroSDK.getPlatform(), Apps4BroSDK.getAdvertisingId());
+                String url = String.format(Apps4BroSDK.HouseAdUrl, m_zoneId, activity.getPackageName(), URLEncoder.encode(Build.MANUFACTURER), URLEncoder.encode(Build.MODEL), URLEncoder.encode(carrierName), w, h, Locale.getDefault().getLanguage(), Apps4BroSDK.Version, Apps4BroSDK.getPlatform(), Apps4BroSDK.getAdvertisingId());
 
                 Log.d(TAG, "process url: " + url);
 
@@ -323,8 +327,9 @@ class HouseNetwork implements AdNetworkHandler
         }
 
         @SuppressWarnings("deprecation")
-        public void show(final Activity activity)
+        public void show()
         {
+            final Activity activity = (Activity) getContext();
             try
             {
                 ViewGroup root = (ViewGroup) activity.findViewById(android.R.id.content);
@@ -351,7 +356,7 @@ class HouseNetwork implements AdNetworkHandler
                     {
                         try
                         {
-                            Thread.sleep(30000);
+                            Thread.sleep(40000);
                         }
                         catch (InterruptedException e)
                         {

@@ -1,0 +1,166 @@
+package net.runserver.apps4bro;
+
+import android.app.Activity;
+import android.util.Log;
+
+import com.adcash.mobileads.AdcashAdRequestFailedError;
+import com.adcash.mobileads.AdcashInterstitial;
+import com.adcash.mobileads.AdcashView.AdListener;
+
+class AdCashNetwork implements AdNetworkHandler
+{
+    private final static String TAG = "AdCash";
+
+    private final AdManager m_manager;
+
+    public String getNetwork()
+    {
+        return TAG;
+    }
+
+    public AdCashNetwork(AdManager manager)
+    {
+        m_manager = manager;
+    }
+
+    public AdObject request(final String id, final Object data)
+    {
+        Log.d(TAG, "Running network " + getNetwork() + "[" + id + "]");
+        final AdcashInterstitial interstitial = new AdcashInterstitial(id, (Activity) m_manager.getContext());
+
+        AdCashAd result = new AdCashAd(id, interstitial, data);
+
+        interstitial.setAdListener(result);
+        interstitial.loadAd();
+
+        return result;
+    }
+
+    class AdCashAd extends AdListener implements AdObject
+    {
+        private final String m_id;
+        private final AdcashInterstitial m_interstitial;
+        private final Object m_data;
+        private AdState m_state;
+
+        public String getId()
+        {
+            return m_id;
+        }
+
+        public AdState getState()
+        {
+            return m_state;
+        }
+
+        public AdCashAd(String id, AdcashInterstitial interstitial, Object data)
+        {
+            m_id = id;
+            m_interstitial = interstitial;
+            m_data = data;
+            m_state = AdState.Loading;
+        }
+
+        public boolean show()
+        {
+            try
+            {
+                if (!m_interstitial.isReady)
+                {
+                    m_state = AdState.Failed;
+                    return false;
+                }
+
+                if (m_manager.isTimedOut())
+                {
+                    Log.e(TAG, "Ad loading timed out!");
+                    return false;
+                }
+
+                m_state = AdState.Used; // consume ad
+
+                m_interstitial.showAd();
+                m_manager.adShown(m_data, null);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+                m_state = AdState.Failed;
+                return false;
+            }
+        }
+
+        public void hide()
+        {
+            m_state = AdState.Closed;
+            // no way to hide AdCash Interstitials?
+        }
+
+        @Override
+        public void onAdLoaded()// When interstitial is ready
+        {
+            super.onAdLoaded();
+
+            m_state = AdState.Ready;
+
+            m_manager.adReady(m_data);
+        }
+
+        @Override
+        public void onAdClosed() // When Interstitial ad is closed
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClosed(m_data);
+        }
+
+        @Override
+        public void onAdOpened()
+        {
+            m_state = AdState.Used;
+
+            m_manager.adShown(m_data, m_interstitial);
+        }
+
+        @Override
+        public void onAdFailedToLoad(int errorCode)
+        {
+            super.onAdFailedToLoad(errorCode);
+
+            m_state = AdState.Failed;
+
+            String message = "";
+            switch (errorCode)
+            {
+                case AdcashAdRequestFailedError.NO_NETWORK:
+                    message = "No internet connection";
+                    break;
+                case AdcashAdRequestFailedError.REQUEST_FAILED:
+                    message = "Request failed";
+                    break;
+                case AdcashAdRequestFailedError.NETWORK_FAILURE:
+                    message = "Network failure";
+                    break;
+                case AdcashAdRequestFailedError.NO_AD:
+                    message = "There is no ad";
+                    break;
+                default:
+                    message = "Some other problem";
+                    break;
+            }
+            m_manager.adError(m_data, message);
+        }
+
+        @Override
+        public void onAdLeftApplication()
+        {
+            super.onAdLeftApplication();
+
+            m_state = AdState.Closed;
+
+            m_manager.adClick(m_data);
+        }
+    }
+}

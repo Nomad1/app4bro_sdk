@@ -1,25 +1,18 @@
 package net.runserver.apps4bro;
 
+import android.app.Activity;
+
 public interface AdNetworkHandler
 {
     String getNetwork();
 
-    AdObject request(String id, Object data);
-
-    enum AdState
-    {
-        Loading, // in progress
-        Failed, // error loading ad
-        Ready, // ad is ready to be shown
-        Closed, // was shown but now closed by click or close button
-        Used // showing right now
-    }
+    AdObject request(final AdManager manager, String id, Object data);
 
     interface AdObject
     {
-        AdState getState();
+        AdEnums.AdState getState();
 
-        boolean show();
+        boolean show(Activity context);
 
         void hide();
     }

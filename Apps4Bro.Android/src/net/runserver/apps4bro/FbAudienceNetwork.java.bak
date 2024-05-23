@@ -1,0 +1,164 @@
+package net.runserver.apps4bro;
+
+import android.app.Activity;
+import android.util.Log;
+
+import com.facebook.ads.*;
+
+public class FbAudienceNetwork implements AdNetworkHandler
+{
+    private final static String TAG = "FbAudience";
+
+    private final AdManager m_manager;
+    private FbAudienceAd m_ad;
+
+    public String getNetwork()
+    {
+        return TAG;
+    }
+
+    public FbAudienceNetwork(AdManager manager)
+    {
+        m_manager = manager;
+    }
+
+    public AdObject request(final String id, final Object data)
+    {
+        Activity context = (Activity) m_manager.getContext();
+
+        if (m_ad == null)
+        {
+            if (!AudienceNetworkAds.isInitialized(context))
+            {
+                //if (DEBUG) {
+                //    AdSettings.turnOnSDKDebugger(context);
+                //}
+
+                AudienceNetworkAds
+                        .buildInitSettings(context)
+                        //.withInitListener(this)
+                        .initialize();
+
+                AdSettings.addTestDevice("dd91cb6c-123b-4405-a13f-7c9a9078e128");
+            }
+
+            InterstitialAd interstitialAd = new InterstitialAd(context, id);
+            m_ad = new FbAudienceAd(id, interstitialAd, data);
+
+            interstitialAd.loadAd(interstitialAd.buildLoadAdConfig()
+                    .withAdListener(m_ad)
+                    .build());
+        }
+
+        return m_ad;
+    }
+
+    class FbAudienceAd implements AdObject, InterstitialAdListener
+    {
+        private final String m_id;
+        private final InterstitialAd m_interstitial;
+        private final Object m_data;
+        private AdState m_state;
+
+        public String getId()
+        {
+            return m_id;
+        }
+
+        public AdState getState()
+        {
+            return m_state;
+        }
+
+        public FbAudienceAd(String id, InterstitialAd interstitial, Object data)
+        {
+            m_id = id;
+            m_interstitial = interstitial;
+            m_data = data;
+            m_state = AdState.Loading;
+            m_interstitial.loadAd();
+            Log.e(TAG, "Loading ad");
+        }
+
+        public boolean show()
+        {
+            try
+            {
+                if (!m_interstitial.isAdLoaded() || m_interstitial.isAdInvalidated())
+                {
+                    m_state = AdState.Failed;
+                    return false;
+                }
+
+                if (m_manager.isTimedOut())
+                {
+                    Log.e(TAG, "Ad loading timed out!");
+                    return false;
+                }
+
+                m_state = AdState.Used; // consume ad
+
+                m_interstitial.show();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+                m_state = AdState.Failed;
+                return false;
+            }
+        }
+
+        public void hide()
+        {
+            m_state = AdState.Closed;
+
+            // no way to hide AdMob Interstitials?
+        }
+
+        @Override
+        public void onInterstitialDisplayed(Ad ad)
+        {
+            m_state = AdState.Used;
+
+            m_manager.adShown(m_data, null);
+        }
+
+        @Override
+        public void onInterstitialDismissed(Ad ad)
+        {
+            m_manager.adClosed(m_data);
+        }
+
+        @Override
+        public void onError(Ad ad, AdError adError)
+        {
+            m_state = AdState.Failed;
+
+            m_manager.adError(m_data, TAG + " Failed to load ad: " + adError.getErrorMessage());
+        }
+
+        @Override
+        public void onAdLoaded(Ad ad)
+        {
+            m_state = AdState.Ready;
+
+            m_manager.adReady(m_data);
+        }
+
+        @Override
+        public void onAdClicked(Ad ad)
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClick(m_data);
+        }
+
+        @Override
+        public void onLoggingImpression(Ad ad)
+        {
+
+        }
+    }
+}

@@ -1,16 +1,16 @@
 package net.runserver.apps4bro;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
 import com.google.android.gms.ads.*;
+import com.google.android.gms.ads.interstitial.*;
 
 class AdMobNetwork implements AdNetworkHandler
 {
     private final static String TAG = "AdMob";
     private final static String TAG_NPA = "AdMobNPA";
-
-    private final AdManager m_manager;
     private final boolean m_npa;
 
     public String getNetwork()
@@ -18,20 +18,19 @@ class AdMobNetwork implements AdNetworkHandler
         return m_npa ? TAG_NPA : TAG;
     }
 
-    public AdMobNetwork(AdManager manager, boolean npa)
+    public AdMobNetwork(boolean npa)
     {
-        m_manager = manager;
         m_npa = npa;
     }
 
-    public AdObject request(final String id, final Object data)
+    public AdObject request(final AdManager manager, final String id, final Object data)
     {
         Log.d(TAG, "Running network " + getNetwork() + "[" + id + "]");
-        final InterstitialAd interstitial = new InterstitialAd(m_manager.getContext());
-        interstitial.setAdUnitId(id);
+//        final InterstitialAd interstitial = new InterstitialAd(m_manager.getContext());
+//        interstitial.setAdUnitId(id);
 
         AdRequest request;
-        if (m_npa || Apps4BroSDK.isAdTrackingLimited()) // TODO: think of user conset for AdMob
+        if (m_npa || Apps4BroSDK.isAdTrackingLimited()) // TODO: think of user consent for AdMob
         {
             Bundle extras = new Bundle();
             extras.putString("npa", "1");
@@ -43,113 +42,116 @@ class AdMobNetwork implements AdNetworkHandler
         } else
             request = new AdRequest.Builder().build();
 
-        AdMobAd result = new AdMobAd(id, interstitial, data);
 
-        interstitial.setAdListener(result);
-        interstitial.loadAd(request);
+        AdMobAd result = new AdMobAd(manager, id, data);
+
+        InterstitialAd.load(manager.getApplicationContext(), id, request, result);
+//        interstitial.loadAd(request);
 
         return result;
     }
 
-    class AdMobAd extends AdListener implements AdObject
+    class AdMobAd extends InterstitialAdLoadCallback implements AdObject
     {
         private final String m_id;
-        private final InterstitialAd m_interstitial;
         private final Object m_data;
-        private AdState m_state;
+        private final AdManager m_manager;
+
+        private InterstitialAd m_interstitial;
+        private AdEnums.AdState m_state;
 
         public String getId()
         {
             return m_id;
         }
 
-        public AdState getState()
+        public AdEnums.AdState getState()
         {
             return m_state;
         }
 
-        public AdMobAd(String id, InterstitialAd interstitial, Object data)
+        public AdMobAd(AdManager manager, String id, Object data)
         {
             m_id = id;
-            m_interstitial = interstitial;
+            m_manager = manager;
             m_data = data;
-            m_state = AdState.Loading;
+            m_state = AdEnums.AdState.Loading;
         }
 
-        public boolean show()
+        public boolean show(Activity context)
         {
             try
             {
-                if (!m_interstitial.isLoaded())
+                if (m_interstitial == null)
                 {
-                    m_state = AdState.Failed;
+                    m_state = AdEnums.AdState.Failed;
                     return false;
                 }
 
-                if (m_manager.isTimedOut())
-                {
-                    Log.e(TAG, "Ad loading timed out!");
-                    return false;
-                }
+                m_state = AdEnums.AdState.Shown; // consume ad
 
-                m_state = AdState.Used; // consume ad
-
-                m_interstitial.show();
+                m_interstitial.show(context);
 
                 return true;
             }
             catch (Exception ex)
             {
                 ex.printStackTrace();
-                m_state = AdState.Failed;
+                m_state = AdEnums.AdState.Failed;
                 return false;
             }
         }
 
         public void hide()
         {
-            m_state = AdState.Closed;
+            m_state = AdEnums.AdState.Closed;
 
             // no way to hide AdMob Interstitials?
         }
 
-        public void onAdLoaded()
+        @Override
+        public void onAdFailedToLoad(LoadAdError error)
         {
-            super.onAdLoaded();
+            m_state = AdEnums.AdState.Failed;
 
-            m_state = AdState.Ready;
+            m_manager.adError(m_data, "AdMob Failed to load ad. Error " + error.toString());
+        }
+
+        @Override
+        public void onAdLoaded(InterstitialAd interstitialAd)
+        {
+            FullScreenContentCallback fullScreenContentCallback = new FullScreenContentCallback() {
+                @Override
+                public void onAdClicked()
+                {
+                    m_state = AdEnums.AdState.Closed;
+
+                    m_manager.adClick(m_data);
+                }
+
+                @Override
+                public void onAdDismissedFullScreenContent()
+                {
+                    m_state = AdEnums.AdState.Closed;
+
+                    m_manager.adClosed(m_data);
+                }
+
+                @Override
+                public void onAdShowedFullScreenContent()
+                {
+                    m_state = AdEnums.AdState.Shown;
+
+                    m_manager.adShown(m_data, null);
+                }
+            };
+
+            m_interstitial = interstitialAd;
+            m_interstitial.setFullScreenContentCallback(fullScreenContentCallback);
+
+            m_state = AdEnums.AdState.Ready;
 
             m_manager.adReady(m_data);
-        }
-
-        @Override
-        public void onAdOpened()
-        {
-            super.onAdOpened();
-
-            m_state = AdState.Used;
-
-            m_manager.adShown(m_data, null);
-        }
-
-        @Override
-        public void onAdFailedToLoad(int errorCode)
-        {
-            super.onAdFailedToLoad(errorCode);
-
-            m_state = AdState.Failed;
-
-            m_manager.adError(m_data, "AdMob Failed to load ad: " + errorCode);
-        }
-
-        @Override
-        public void onAdLeftApplication()
-        {
-            super.onAdLeftApplication();
-
-            m_state = AdState.Closed;
-
-            m_manager.adClick(m_data);
         }
     }
 }

@@ -1,24 +1,29 @@
-//noinspection GradleCompatible
 apply plugin: 'com.android.library'
 
 repositories {
     maven { url "https://maven.google.com/" }
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
-    compile 'com.google.android.gms:play-services-ads:16.0+'
+    implementation 'com.google.android.gms:play-services-ads-lite:22.6.0'
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.0.1'
+    implementation 'androidx.fragment:fragment:1.6.2'
+    implementation "androidx.lifecycle:lifecycle-extensions:2.2.0"
 
-    compile fileTree(include: '*.jar', dir: 'libs')
+    def lifecycle_version = '2.7.0'
+    implementation "androidx.lifecycle:lifecycle-process:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-runtime:$lifecycle_version"
+    annotationProcessor "androidx.lifecycle:lifecycle-compiler:$lifecycle_version"
 
+    implementation 'androidx.core:core-splashscreen:1.1.0-rc01'
 }
 
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion '20.0.0'
-
-    aaptOptions { ignoreAssetsPattern "!values-b+sr+Latn" }
+    namespace 'net.runserver.apps4bro'
+    compileSdk 34
+    buildToolsVersion '34.0.0'
 
     sourceSets {
         main {
@@ -27,7 +32,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    defaultConfig {
+        targetSdk 34
+        minSdk 21
     }
 }
