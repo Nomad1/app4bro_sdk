@@ -40,7 +40,7 @@ namespace Apps4Bro.Networks
             bool banner = true;
 
             string url = string.Format(Apps4BroSDK.HouseAdUrl, m_unitId,
-                Package.Current.Id,
+                m_adManager.AppId,
                 "",
                 AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
                 "",
@@ -90,7 +90,7 @@ namespace Apps4Bro.Networks
 
             Hide();
 
-            Windows.System.Launcher.LaunchUriAsync(new Uri(e));
+			_ = Windows.System.Launcher.LaunchUriAsync(new Uri(e));
         }
 
         void HandleDidClosed(object sender, EventArgs e)

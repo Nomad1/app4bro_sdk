@@ -39,6 +39,10 @@ namespace Apps4Bro
         {
             get { return m_adNetworks != null && m_adWrappers != null; }
         }
+        public string AppId
+        {
+            get { return m_appId; }
+        }
 
         public AdContextDelegate Context
         {
@@ -368,6 +372,12 @@ namespace Apps4Bro
                 Debug.WriteLine("DisplayAd called when no ad is loaded!");
                 return;
             }
+
+            if (m_currentWrapper == -1)
+                LoadAd();
+
+            if (m_currentWrapper == -1)
+                return;
 
             AdWrapper wrapper = null;
             try
