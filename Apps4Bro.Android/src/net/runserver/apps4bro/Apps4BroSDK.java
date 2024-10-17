@@ -28,11 +28,11 @@ public final class Apps4BroSDK
     private static String s_platform = "unknown";
 
     public final static String App4BroTag = "app4bro";
-    public final static String ReportUrl = "https://runserver.net/app4bro/event.php?id=%1$s&app=%2$s&event=%3$s&param=%4$s&time=%5$d&eventid=%6$s";
-    public final static String AdManagerUrl = "https://runserver.net/app4bro/ad.php?id=%1$s&app=%2$s&lang=%3$s&sdk=%4$s&os=%5$s";
-    public final static String AdManagerUrlShort = "https://runserver.net/app4bro/ad.php?app=%1$s";
+    public final static String ReportUrl = "https://app4bro.runserver.net/app4bro/event.php?id=%1$s&app=%2$s&event=%3$s&param=%4$s&time=%5$d&eventid=%6$s";
+    public final static String AdManagerUrl = "https://app4bro.runserver.net/app4bro/ad.php?id=%1$s&app=%2$s&lang=%3$s&sdk=%4$s&os=%5$s";
+    public final static String AdManagerUrlShort = "https://app4bro.runserver.net/app4bro/ad.php?app=%1$s";
 
-    public final static String HouseAdUrl = "https://runserver.net/app4bro/house.php?id=%1$s&app=%2$s&brand=%3$s&model=%4$s&operator=%5$s&width=%6$d&height=%7$d&lang=%8$s&sdk=%9$s&os=%10$s&did=%11$s";
+    public final static String HouseAdUrl = "https://app4bro.runserver.net/app4bro/house.php?id=%1$s&app=%2$s&brand=%3$s&model=%4$s&operator=%5$s&width=%6$d&height=%7$d&lang=%8$s&sdk=%9$s&os=%10$s&did=%11$s";
     public final static int HouseAdTimeout = 10;
 
     public static String getAdvertisingId() throws Exception
