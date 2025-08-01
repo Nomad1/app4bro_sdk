@@ -5,6 +5,7 @@ using System.Net;
 using System.IO;
 using System.Text;
 using Apps4Bro.Networks;
+using UIKit;
 
 #if __IOS__
 using Foundation;
@@ -38,10 +39,11 @@ namespace Apps4Bro
 #endif
 
         private AdWrapper[] m_adWrappers;
-        private AdContextDelegate m_context;
+        private volatile AdContextDelegate m_context;
         private int m_currentWrapper;
         private bool m_adShown;
         private bool m_adLoaded;
+        private bool m_inited;
         private string m_appId;
 
         public bool IsAdShown
@@ -130,6 +132,8 @@ namespace Apps4Bro
 #endif
             RegisterAdNetwork(new DummyNetwork(this));
             RegisterAdNetwork(new HouseNetwork(this));
+
+            PreInit();
         }
 
         public void RegisterAdNetwork(AdNetworkHandler handler)
@@ -145,15 +149,8 @@ namespace Apps4Bro
             );
         }
 
-        public void Init(AdContextDelegate context)
+        private void PreInit()
         {
-            if (IsInited)
-            {
-                LoadAd();
-                return;
-            }
-
-            m_context = context;
 
 #if __IOS__
             NSUrl nsurl = NSUrl.FromString(FormatRequest());
@@ -162,14 +159,9 @@ namespace Apps4Bro
             request.TimeoutInterval = 5.0;
 
             NSUrlConnection.SendAsynchronousRequest(request, m_operationQueue, (response, ndata, error) =>
-            {
-                if (error != null)
-                {
-                    DoInit(null, (HttpStatusCode)(int)error.Code);
-                    return;
-                }
-                DoInit(ndata.ToString(), HttpStatusCode.OK);
-            }
+                UIApplication.SharedApplication.BeginInvokeOnMainThread(() =>
+                    DoInit(ndata != null ? ndata.ToString() : null, error != null ? (HttpStatusCode)(int)error.Code : HttpStatusCode.OK)
+                )
             );
 #else
             HttpWebRequest request = HttpWebRequest.Create(FormatRequest());
@@ -185,6 +177,25 @@ namespace Apps4Bro
 #endif
         }
 
+        public void Init(AdContextDelegate context)
+        {
+            if (m_context == null && m_inited)
+            {
+                m_context = context;
+                m_context.OnInited(this);
+                return;
+            }
+
+            if (IsInited)
+            {
+                LoadAd();
+                return;
+            }
+
+            m_context = context;
+        }
+
+#if NETFX_CORE
         private void InitAsync(IAsyncResult asynchronousResult)
         {
             string adData = null;
@@ -211,7 +222,7 @@ namespace Apps4Bro
 
             DoInit(adData, code);
         }
-
+#endif
         private void DoInit(string adData, HttpStatusCode code)
         {
             try
@@ -273,7 +284,10 @@ namespace Apps4Bro
 
             m_currentWrapper = -1;
 
-            m_context.OnInited(this);
+            m_inited = true;
+
+            if (m_context != null)
+                m_context.OnInited(this);
         }
 
         private void ParseAdData(string data, bool save)

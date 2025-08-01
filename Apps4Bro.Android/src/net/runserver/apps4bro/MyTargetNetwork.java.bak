@@ -1,0 +1,148 @@
+package net.runserver.apps4bro;
+
+import android.util.Log;
+
+import ru.mail.android.mytarget.ads.InterstitialAd;
+
+class MyTargetNetwork implements AdNetworkHandler
+{
+    private final static String TAG = "MyTarget";
+
+    private final AdManager m_manager;
+
+    public String getNetwork()
+    {
+        return TAG;
+    }
+
+    public MyTargetNetwork(AdManager manager)
+    {
+        m_manager = manager;
+    }
+
+    public AdObject request(final String id, final Object data)
+    {
+        Log.d(TAG, "Running network " + getNetwork() + "[" + id + "]");
+
+        final InterstitialAd interstitial = new InterstitialAd(Integer.parseInt(id), m_manager.getContext());
+
+        MyTargetAd result = new MyTargetAd(id, interstitial, data);
+
+        interstitial.setListener(result);
+        interstitial.load();
+
+        return result;
+    }
+
+    class MyTargetAd implements InterstitialAd.InterstitialAdListener, AdObject
+    {
+        private final String m_id;
+        private final InterstitialAd m_interstitial;
+        private final Object m_data;
+        private AdState m_state;
+
+        public String getId()
+        {
+            return m_id;
+        }
+
+        public AdState getState()
+        {
+            return m_state;
+        }
+
+        public MyTargetAd(String id, InterstitialAd interstitial, Object data)
+        {
+            m_id = id;
+            m_interstitial = interstitial;
+            m_data = data;
+            m_state = AdState.Loading;
+        }
+
+        public boolean show()
+        {
+            try
+            {
+                /*if (!m_interstitial.())
+                {
+                    m_state = AdState.Failed;
+                    return false;
+                }*/
+
+                if (m_manager.isTimedOut())
+                {
+                    Log.e(TAG, "Ad loading timed out!");
+                    return false;
+                }
+
+                m_state = AdState.Used; // consume ad
+
+                m_interstitial.show();
+                m_manager.adShown(m_data, null);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+                m_state = AdState.Failed;
+                return false;
+            }
+        }
+
+        public void hide()
+        {
+            m_state = AdState.Closed;
+
+            m_interstitial.destroy();
+        }
+
+        @Override
+        public void onLoad(InterstitialAd ad)
+        {
+            m_state = AdState.Ready;
+
+            m_manager.adReady(m_data);
+        }
+
+        @Override
+        public void onNoAd(String reason, InterstitialAd ad)
+        {
+            m_state = AdState.Failed;
+
+            m_manager.adError(m_data, "MyTarget Failed to load ad: " + reason);
+        }
+
+//        @Override
+        public void onDisplay(InterstitialAd ad)
+        {
+            m_state = AdState.Used;
+
+            m_manager.adShown(m_data, ad);
+        }
+
+        @Override
+        public void onVideoCompleted(InterstitialAd ad)
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClosed(m_data);
+        }
+
+        @Override
+        public void onClick(InterstitialAd ad)
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClick(m_data);
+        }
+
+        @Override
+        public void onDismiss(InterstitialAd ad)
+        {
+            m_state = AdState.Closed;
+
+            m_manager.adClosed(m_data);
+        }
+    }
+}
