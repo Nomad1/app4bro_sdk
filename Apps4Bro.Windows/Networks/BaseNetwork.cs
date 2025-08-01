@@ -6,7 +6,8 @@
 
         protected string m_appId;
         protected string m_unitId;
-        protected AdWrapper m_wrapper;
+		protected string [] m_allIds;
+		protected AdWrapper m_wrapper;
         protected object m_data;
 
         public abstract string Network
@@ -40,9 +41,9 @@
             string appId;
             if (unitId.Contains(";"))
             {
-                string[] nsplit = unitId.Split(';');
-                appId = nsplit[0];
-                unitId = nsplit[1];
+				m_allIds = unitId.Split(';');
+                appId = m_allIds[0];
+                unitId = m_allIds[1];
             }
             else
                 appId = id;
