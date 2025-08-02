@@ -5,6 +5,7 @@ using System.Net;
 using System.IO;
 using System.Text;
 using Apps4Bro.Networks;
+using Windows.System.Threading;
 
 namespace Apps4Bro
 {
@@ -25,7 +26,17 @@ namespace Apps4Bro
         private string m_appId;
         private object m_data;
 
-        public bool IsAdShown
+#if WINDOWS_UWP
+        private Windows.UI.Core.CoreDispatcher m_dispatcher;
+
+		public Windows.UI.Core.CoreDispatcher UiThread
+		{
+			set { m_dispatcher = value; }
+			get { return m_dispatcher; }
+		}
+#endif
+
+		public bool IsAdShown
         {
             get { return m_adShown; }
         }
@@ -71,7 +82,7 @@ namespace Apps4Bro
 #endif
             m_adNetworks = new Dictionary<string, AdNetworkHandler>();
 
-            // Registering built-in SDKs
+			// Registering built-in SDKs
 #if __IOS__
 
             // Interstitials
@@ -119,12 +130,48 @@ namespace Apps4Bro
 #if USE_ADCASH
             RegisterAdNetwork(new AdCashNetwork(this));
 #endif
+#elif WINDOWS_UWP
+#if USE_VUNGLE
+           RegisterAdNetwork(new VungleNetwork(this));
 #endif
-            RegisterAdNetwork(new DummyNetwork(this));
+#if USE_ADDUPLEX
+           RegisterAdNetwork(new AdDuplexNetwork(this));
+#endif
+#if USE_ADSJUMBO
+			RegisterAdNetwork(new AdsJumboNetwork(this));
+#endif
+#if USE_PUBFINITY
+            RegisterAdNetwork(new PubfinityNetwork(this));
+#endif
+#if USE_PUBFINITY2
+			RegisterAdNetwork(new PubfinityNetwork2(this));
+#endif
+#if USE_MG
+			RegisterAdNetwork(new MgNetwork(this));
+#endif
+#endif
+			RegisterAdNetwork(new DummyNetwork(this));
             RegisterAdNetwork(new HouseNetwork(this));
         }
 
-        public void RegisterAdNetwork(AdNetworkHandler handler)
+        public void RunOnUiThread(Action action, int seconds = 0)
+        {
+#if WINDOWS_UWP
+            if (m_dispatcher == null)
+                throw new Exception("UiThread Dispatcher is not inited!");
+
+			ThreadPoolTimer DelayTimer = ThreadPoolTimer.CreateTimer(
+			   async (source) =>
+			   {
+				   await m_dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => action());
+
+			   }, TimeSpan.FromMilliseconds(seconds * 1000 + 1));
+#else
+            action();
+#endif
+        }
+
+		public void RegisterAdNetwork(AdNetworkHandler handler)
         {
             m_adNetworks[handler.Network.ToLower()] = handler;
         }
@@ -335,9 +382,9 @@ namespace Apps4Bro
 
             if (m_currentWrapper >= m_adWrappers.Length)
             {
-                Debug.WriteLine("No ad networks left for LoadAd()!");
-                m_currentWrapper = -1;
-                return;
+                //Debug.WriteLine("No ad networks left for LoadAd()!");
+                m_currentWrapper =0;
+                //return;
             }
 
             AdWrapper wrapper = null;

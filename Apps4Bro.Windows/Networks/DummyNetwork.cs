@@ -4,7 +4,7 @@
     {
         public override string Network
         {
-            get { return "Fake"; }
+            get { return "Dummy"; }
         }
 
         public DummyNetwork(AdManager manager)
