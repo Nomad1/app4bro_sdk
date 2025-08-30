@@ -155,15 +155,7 @@ namespace Apps4Bro.Networks
 
         public override void Display()
         {
-            m_adManager.RunOnUiThread(() =>
-            {
-                if (m_pubfinityAdControl != null)
-                {
-                    m_pubfinityAdControl.Visibility = Visibility.Visible;
-                    m_pubfinityAdControl.Opacity = 1;
-                }
-            }
-            );
+           
         }
     }
 }
