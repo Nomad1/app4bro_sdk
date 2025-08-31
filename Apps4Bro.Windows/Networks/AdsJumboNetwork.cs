@@ -39,15 +39,16 @@ namespace Apps4Bro.Networks
                 bannerAd.WidthAd = 728;
                 bannerAd.HeightAd = 90;
                 bannerAd.Position = "Right";
-                bannerAd.VerticalAlignment = VerticalAlignment.Bottom;             // Vertical Alignment
-                bannerAd.HorizontalAlignment = HorizontalAlignment.Center;         // Horizontal Alignment
+                bannerAd.VerticalAlignment = VerticalAlignment.Center;             // Vertical Alignment
+                bannerAd.HorizontalAlignment = HorizontalAlignment.Left;         // Horizontal Alignment
 
                 bannerAd.OnAdError += adsJumboAd_AdLoadingError;
                 bannerAd.OnAdErrorNoAds += adsJumboAd_AdLoadingError;
+                bannerAd.OnAdRefreshed += adsJumboAd_AdLoaded;
 
-                //bannerGrid.Visibility = Visibility.Visible;
-                //bannerGrid.Opacity = 1;
-                bannerGrid.Children.Add(bannerAd);
+				bannerGrid.Visibility = Visibility.Visible;
+				bannerGrid.Opacity = 1;
+				bannerGrid.Children.Add(bannerAd);
 
                 m_adsJumboAd = bannerAd;
             }

@@ -44,7 +44,8 @@ namespace Apps4Bro.Networks
                 "",
                 AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
                 "",
-                displayInformation.ScreenWidthInRawPixels, displayInformation.ScreenHeightInRawPixels,
+                displayInformation.ScreenHeightInRawPixels, displayInformation.ScreenHeightInRawPixels,
+ //               bannerGrid.ActualWidth, bannerGrid.ActualHeight,
                 CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, Apps4BroSDK.AdvertisingId, banner.ToString().ToLower());
 
             m_bannerView = new ExternalBanner(bannerGrid, new Uri(url));
@@ -275,10 +276,10 @@ namespace Apps4Bro.Networks
 
         async void OnLoadCompleted(object sender, Windows.UI.Xaml.Navigation.NavigationEventArgs e)
         {
-            
+
 
 #if DEBUG
-            string retrieveHtml = "document.documentElement.outerHTML;";
+			string retrieveHtml = "document.documentElement.outerHTML;";
             string html = await m_webView.InvokeScriptAsync("eval", new[] { retrieveHtml });
             Debug.WriteLine("HTML text: " + html);
 #endif
