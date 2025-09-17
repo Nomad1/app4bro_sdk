@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.Remoting.Contexts;
+using Google.UserMessagingPlatform;
+using UIKit;
 
 #if __ANDROID__
 using Android.Gms.Ads.Identifier;
 using Android.Gms.Common;
+
+#else
 #endif
 
 namespace Apps4Bro
@@ -47,6 +52,44 @@ namespace Apps4Bro
             set { s_useNonPersonalizedAds = value; }
         }
 
+        public static void InitCMP(UIViewController viewController)
+        {
+            var requestParameters = new RequestParameters();
+            requestParameters.TagForUnderAgeOfConsent = false;
+
+#if DEBUG
+            requestParameters.DebugSettings = new DebugSettings
+            {
+                Geography = DebugGeography.Eea
+            };
+#endif
+
+            ConsentStatus consentStatus = ConsentStatus.NotRequired;
+
+            ConsentInformation.SharedInstance.RequestConsentInfoUpdate(requestParameters, (error) =>
+            {
+                if (error == null)
+                {
+                    consentStatus = ConsentInformation.SharedInstance.ConsentStatus;
+                    // Check user location
+                    if (consentStatus == ConsentStatus.Unknown
+                    || consentStatus == ConsentStatus.Required) // IsRequestLocationInEeaOrUnknown
+                    {
+                        // Load consent message
+                        ConsentForm.Load((consentForm, loadError) =>
+                        {
+                            if (loadError == null)
+                            {
+                                // Show consent message
+                                consentForm.Present(viewController);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+
         public static string AdvertisingId
         {
             get
@@ -59,6 +102,7 @@ namespace Apps4Bro
 #else
                     throw new ApplicationException("Apps4Bro SDK is not inited!");
 #endif
+
                 }
 
                 if (string.IsNullOrEmpty(s_advertisingId) || s_advertisingId.Equals(s_emptyId))
