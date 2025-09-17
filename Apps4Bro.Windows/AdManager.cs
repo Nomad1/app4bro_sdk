@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Apps4Bro.Networks;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
 using System.IO;
+using System.Net;
 using System.Text;
-using Apps4Bro.Networks;
+using Windows.Storage;
 using Windows.System.Threading;
 
 namespace Apps4Bro
@@ -15,7 +16,6 @@ namespace Apps4Bro
 
         private readonly Dictionary<string, AdNetworkHandler> m_adNetworks;
         private readonly Dictionary<string, string> m_keys;
-
         private readonly ReportManager m_reportManager;
 
         private AdWrapper[] m_adWrappers;
@@ -25,6 +25,8 @@ namespace Apps4Bro
         private bool m_adLoaded;
         private string m_appId;
         private object m_data;
+
+        private string m_currentAdData; // cached settings for ads
 
 #if WINDOWS_UWP
         private Windows.UI.Core.CoreDispatcher m_dispatcher;
@@ -188,11 +190,9 @@ namespace Apps4Bro
         {
             m_data = data;
 
-            if (IsInited)
-            {
-                LoadAd();
-                return;
-            }
+            LoadCache();
+			
+            // still run a request for new data, just in case
 
             m_context = context;
             WebRequest request = WebRequest.Create(FormatRequest());
@@ -205,6 +205,34 @@ namespace Apps4Bro
 
             request.BeginGetResponse(InitAsync, request);
         }
+
+        private void LoadCache()
+        {
+			if (m_adWrappers == null) // try cached data
+			{
+				string key = App4BroTag + "_" + m_appId;
+#if __IOS__
+                string data = Foundation.NSUserDefaults.StandardUserDefaults.StringForKey(key);
+                if (data != null)
+                {
+                    Debug.WriteLine("Registering cached ads");
+                    ParseAdData(data, false);
+                }
+#elif WINDOWS_UWP
+				if (ApplicationData.Current.LocalSettings.Values.ContainsKey(key))
+				{
+					string data = ApplicationData.Current.LocalSettings.Values[key].ToString();
+					if (!string.IsNullOrEmpty(data))
+					{
+						Debug.WriteLine("Registering cached ads");
+
+                        if (ParseAdData(data, false))
+                            SetInitedState();
+					}
+				}
+#endif
+			}
+		}
 
         private void InitAsync(IAsyncResult asynchronousResult)
         {
@@ -226,8 +254,10 @@ namespace Apps4Bro
 
                 if (!string.IsNullOrWhiteSpace(data))
                 {
-                    ParseAdData(data, true);
-                }
+                    if (ParseAdData(data, true))
+                        SetInitedState();
+
+				}
                 else
                     Debug.WriteLine("Got empty response");
 
@@ -237,50 +267,46 @@ namespace Apps4Bro
                 Debug.WriteLine("Network error: " + ex);
             }
 
-            if (m_adWrappers == null) // try cached data
+			if (m_adWrappers == null)
+			{
+				Debug.WriteLine("Registering fallback ads");
+
+				StringBuilder builder = new StringBuilder();
+
+				int count = 0;
+				foreach (KeyValuePair<string, string> pair in m_keys)
+				{
+					count++;
+					builder.AppendFormat("{0}:{0}def{1}|{2}|", pair.Key, count, pair.Value);
+				}
+
+				ParseAdData(builder.ToString(), false);
+
+				if (m_adWrappers == null)
+				{
+					Debug.WriteLine("No ad networks registered!");
+					return;
+				}
+			}
+		}
+
+        private void SetInitedState()
+        {
+            RunOnUiThread(() =>
             {
-#if __IOS__
+                m_currentWrapper = -1;
 
-                string data = Foundation.NSUserDefaults.StandardUserDefaults.StringForKey(App4BroTag + "_" + m_appId);
-                if (data != null)
-                {
-                    Debug.WriteLine("Registering cached ads");
-                    ParseAdData(data, false);
-                }
-
-#endif
-            }
-           
-
-            if (m_adWrappers == null)
-            {
-                Debug.WriteLine("Registering fallback ads");
-
-                StringBuilder builder = new StringBuilder();
-
-                int count = 0;
-                foreach (KeyValuePair<string, string> pair in m_keys)
-                {
-                    count++;
-                    builder.AppendFormat("{0}:{0}def{1}|{2}|", pair.Key, count, pair.Value);
-                }
-
-                ParseAdData(builder.ToString(), false);
-
-                if (m_adWrappers == null)
-                {
-                    Debug.WriteLine("No ad networks registered!");
-                    return;
-                }
-            }
-
-            m_currentWrapper = -1;
-
-            m_context.OnInited(this);
+                m_context.OnInited(this);
+            }, 0);
         }
 
-        private void ParseAdData(string data, bool save)
+        private bool ParseAdData(string data, bool save)
         {
+            if (m_currentAdData != null && m_currentAdData == data)
+                return false;
+
+            bool result = false;
+
             try
             {
                 string[] adData = data.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
@@ -307,9 +333,9 @@ namespace Apps4Bro
 
                         if (m_adNetworks.TryGetValue(network, out networkHandler))
                         {
-                            wrappers.Add(new AdWrapper(networkHandler, adData[i + 1], networkId));
-                            Debug.WriteLine("Registered ad network " + network + "[" + adData[i + 1] + "]");
-                        }
+							wrappers.Add(new AdWrapper(networkHandler, adData[i + 1], networkId));
+							Debug.WriteLine("Registered ad network " + network + "[" + adData[i + 1] + "]");
+						}
                         else
                             Debug.WriteLine("Failed to register ad network " + network);
                     }
@@ -321,15 +347,19 @@ namespace Apps4Bro
                     else
                     {
                         m_adWrappers = wrappers.ToArray();
+                        m_currentAdData = data;
                         Debug.WriteLine("Registered " + m_adWrappers.Length + " ad networks");
+                        result = true;
                     }
 
                     if (save)
                     {
 #if __IOS__
                         Foundation.NSUserDefaults.StandardUserDefaults.SetString(data, App4BroTag + "_" + m_appId);
+#elif WINDOWS_UWP
+                        ApplicationData.Current.LocalSettings.Values[App4BroTag + "_" + m_appId] = data;
 #endif
-                    }
+					}
 
 
                     m_reportManager.ReportEvent("AD_INIT", m_adWrappers.Length.ToString());
@@ -339,6 +369,7 @@ namespace Apps4Bro
             {
                 Debug.WriteLine("Error parsing data string " + data);
             }
+            return result;
         }
 
         public void HideAd()
@@ -383,7 +414,7 @@ namespace Apps4Bro
             if (m_currentWrapper >= m_adWrappers.Length)
             {
                 //Debug.WriteLine("No ad networks left for LoadAd()!");
-                m_currentWrapper =0;
+                m_currentWrapper = 0;
                 //return;
             }
 

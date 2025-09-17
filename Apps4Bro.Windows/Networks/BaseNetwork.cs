@@ -1,5 +1,13 @@
 ﻿namespace Apps4Bro.Networks
 {
+    enum AdNetworkInitStatus
+    {
+        Unknown = 0,
+        Inited = 1,
+        Initializing = 2,
+        Error = 3,
+    };
+
     internal abstract class BaseNetwork : AdNetworkHandler
     {
         protected readonly AdManager m_adManager;
@@ -9,6 +17,7 @@
 		protected string [] m_allIds;
 		protected AdWrapper m_wrapper;
         protected object m_data;
+        protected AdNetworkInitStatus m_inited;
 
         public abstract string Network
         {
@@ -26,7 +35,8 @@
             m_wrapper = wrapper;
             m_data = data;
 
-            Hide();
+            //Nomad: I'm disabling this since hide/show cycle for already visible ad could mean problems
+            //Hide();
 
             return true;
         }
@@ -48,8 +58,12 @@
             else
                 appId = id;
 
-            m_appId = appId;
-            m_unitId = unitId;
-        }
+            if (m_appId != appId || m_unitId != unitId)
+            {
+                m_appId = appId;
+                m_unitId = unitId;
+                m_inited = AdNetworkInitStatus.Unknown;
+            }
+		}
     }
 }
