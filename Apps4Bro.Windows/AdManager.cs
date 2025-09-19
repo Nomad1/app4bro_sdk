@@ -134,7 +134,8 @@ namespace Apps4Bro
 #endif
 #elif WINDOWS_UWP
 #if USE_VUNGLE
-           RegisterAdNetwork(new VungleNetwork(this));
+          // RegisterAdNetwork(new VungleNetwork(this));
+			RegisterAdNetwork(new VungleInterNetwork(this));
 #endif
 #if USE_ADDUPLEX
            RegisterAdNetwork(new AdDuplexNetwork(this));
@@ -147,19 +148,27 @@ namespace Apps4Bro
 #endif
 #if USE_PUBFINITY2
 			RegisterAdNetwork(new PubfinityNetwork2(this));
+			RegisterAdNetwork(new PubfinityInterNetwork2(this));
 #endif
 #if USE_MG
 			RegisterAdNetwork(new MgNetwork(this));
+			RegisterAdNetwork(new MgInterNetwork(this));
 #endif
 #endif
 			RegisterAdNetwork(new DummyNetwork(this));
             RegisterAdNetwork(new HouseNetwork(this));
         }
 
-        public void RunOnUiThread(Action action, int seconds = 0)
+        public void RunOnUiThread(Action action, double seconds = 0)
         {
 #if WINDOWS_UWP
-            if (m_dispatcher == null)
+			if (seconds == 0 && m_dispatcher.HasThreadAccess)
+			{
+				action();
+				return;
+			}
+
+			if (m_dispatcher == null)
                 throw new Exception("UiThread Dispatcher is not inited!");
 
 			ThreadPoolTimer DelayTimer = ThreadPoolTimer.CreateTimer(
@@ -189,12 +198,12 @@ namespace Apps4Bro
         public void Init(AdContextDelegate context, object data)
         {
             m_data = data;
+			m_context = context;
 
-            LoadCache();
+			LoadCache();
 			
             // still run a request for new data, just in case
-
-            m_context = context;
+           
             WebRequest request = WebRequest.Create(FormatRequest());
             request.Headers[HttpRequestHeader.UserAgent] = "WinHTTP";
             request.ContentType = "application/text";
