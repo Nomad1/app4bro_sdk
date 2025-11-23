@@ -1,4 +1,7 @@
 ﻿#if USE_VUNGLE
+
+#define VUNGLE_DEBUG
+
 using System;
 using System.Diagnostics;
 using VungleSDK;
@@ -81,10 +84,14 @@ namespace Apps4Bro.Networks
 		{
 			m_sdkInstance.OnInitCompleted -= SdkInstance_OnInitCompleted;
 
-			if (m_sdkInstance != null && arg.Initialized)
+			if (m_sdkInstance != null && arg.Initialized && arg.Placements.Length > 0)
 			{
+				string id = arg.Placements[0].ReferenceId;
 				m_inited = AdNetworkInitStatus.Inited;
-				m_sdkInstance.LoadAd(m_unitId);
+				if (arg.Placements[0].IsHeaderBidding)
+					m_sdkInstance.LoadMediatedAd(id, ""); // wont work but causes an error so other networks could continue
+				else
+					m_sdkInstance.LoadAd(id);
 			}
 			else
 			{
@@ -128,6 +135,7 @@ namespace Apps4Bro.Networks
 				Debug.WriteLine("Failed to show Vungle advertising: " + ex);
 				m_adManager.ReportManager.ReportEvent("VUNGLE_ERROR", ex.ToString());
 				m_sdkInstance = null;
+				m_inited = AdNetworkInitStatus.Error;
 			}
 		}
 

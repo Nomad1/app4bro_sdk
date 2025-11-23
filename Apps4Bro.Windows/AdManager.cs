@@ -7,6 +7,8 @@ using System.Net;
 using System.Text;
 using Windows.Storage;
 using Windows.System.Threading;
+using Windows.UI.Core;
+using Windows.UI.Xaml;
 
 namespace Apps4Bro
 {
@@ -161,20 +163,24 @@ namespace Apps4Bro
 
         public void RunOnUiThread(Action action, double seconds = 0)
         {
+            CoreDispatcher dispatcher = m_dispatcher;
+            if (dispatcher == null && Window.Current != null)
+				dispatcher = Window.Current.Dispatcher;
+
 #if WINDOWS_UWP
-			if (seconds == 0 && m_dispatcher.HasThreadAccess)
+			if (dispatcher == null || (seconds == 0 && dispatcher.HasThreadAccess))
 			{
 				action();
 				return;
 			}
 
-			if (m_dispatcher == null)
+			if (dispatcher == null)
                 throw new Exception("UiThread Dispatcher is not inited!");
 
 			ThreadPoolTimer DelayTimer = ThreadPoolTimer.CreateTimer(
 			   async (source) =>
 			   {
-				   await m_dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => action());
+				   await dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => action());
 
 			   }, TimeSpan.FromMilliseconds(seconds * 1000 + 1));
 #else
