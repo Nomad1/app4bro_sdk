@@ -218,6 +218,10 @@ namespace Apps4Bro.Networks
             {
                 m_webView.PointerPressed += OnPointerPressed;
             }
+            else
+            {
+                m_webView.NewWindowRequested += OnNewWindowRequested;
+            }
 
             if (m_uri != null)
             {
@@ -253,15 +257,16 @@ namespace Apps4Bro.Networks
 
             Debug.WriteLine("Got external notify: " + value);
 
-            if (value.StartsWith("%%"))
-            {
-                if (m_onClicked != null)
-                    m_onClicked(this, value.Substring(2));
-                return;
-            }
-
             if (m_onNotify != null)
                 m_onNotify(this, value);
+        }
+
+        void OnNewWindowRequested(WebView sender, WebViewNewWindowRequestedEventArgs args)
+        {
+            args.Handled = true;
+
+            if (args.Uri != null && m_onClicked != null)
+                m_onClicked(this, args.Uri.ToString());
         }
 
         void OnNavigationFailed(object sender, WebViewNavigationFailedEventArgs e)
@@ -287,12 +292,6 @@ namespace Apps4Bro.Networks
             string setStyle = "document.body.style.overflow='hidden';document.body.style.margin='0';document.body.style.padding='0';";
             await m_webView.InvokeScriptAsync("eval", new[] { setStyle });
 
-            if (m_clickOverrideUri == null)
-            {
-                string fixer = "for (var i = 0; i < document.links.length; i++) { document.links[i].onclick = function() { window.external.notify('%%' + this.href); return false; } }";
-                //string fixer = "function navigating(){ window.external.notify('%%' + location.href); } window.onbeforeunload = navigating;";
-                await m_webView.InvokeScriptAsync("eval", new[] { fixer });
-            }
             if (m_onLoaded != null)
                 m_onLoaded(m_webView, null);
         }
