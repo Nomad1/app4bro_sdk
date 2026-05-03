@@ -131,7 +131,7 @@ namespace Apps4Bro.Networks
                 m_webView.Visibility = Visibility.Collapsed;
                 m_webView.DefaultBackgroundColor = Windows.UI.Colors.Black;
 
-                Rect bounds = Window.Current.Bounds;
+                Windows.Foundation.Rect bounds = Window.Current.Bounds;
 
                 m_adGrid = new Grid();
                 m_adGrid.Width = bounds.Width;

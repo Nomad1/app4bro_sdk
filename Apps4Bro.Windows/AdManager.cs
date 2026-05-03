@@ -397,18 +397,11 @@ namespace Apps4Bro
                 return;
             }
 
-            // Disabled: networks like HouseInter and Pubfinity can be mid-load (popup
-            // open / WebView still fetching / SDK preparing the ad) without having
-            // fired AdShown yet, but the host still needs to cancel them — e.g. the
-            // splash budget elapsed before "ready" arrived. Each network's Hide() is
-            // idempotent and treats "nothing to clean" as a no-op, so always
-            // dispatching is safe. Re-enable this gate only if a future change makes
-            // Hide() destructive when called early.
-            //if (!m_adShown)
-            //{
-            //    Debug.WriteLine("HideAd called with no shown ads!");
-            //    return;
-            //}
+            if (!m_adShown)
+            {
+                Debug.WriteLine("HideAd called with no shown ads!");
+                return;
+            }
 
             try
             {
@@ -430,29 +423,41 @@ namespace Apps4Bro
                 throw new ApplicationException("LoadAd called before initialization!");
             }
 
-            m_currentWrapper++;
-            m_adLoaded = false;
+			m_adLoaded = false;
 
-            Debug.WriteLine("Going to use wrapper #" + m_currentWrapper);
+            int tries = m_adWrappers.Length;
 
-            if (m_currentWrapper >= m_adWrappers.Length)
+            while (tries-- > 0)
             {
-                //Debug.WriteLine("No ad networks left for LoadAd()!");
-                m_currentWrapper = 0;
-                //return;
+                m_currentWrapper++;
+
+                if (m_currentWrapper >= m_adWrappers.Length)
+                    m_currentWrapper = 0;
+
+                if (m_adWrappers[m_currentWrapper].FailCount > 2)
+                    continue;
             }
 
-            AdWrapper wrapper = null;
+			if (m_adWrappers[m_currentWrapper].FailCount > 2)
+            {
+				Debug.WriteLine("No valid wrappers left");
+                return;
+			}
+
+			Debug.WriteLine("Going to use wrapper #" + m_currentWrapper);
+			AdWrapper wrapper = null;
+
             try
             {
                 wrapper = m_adWrappers[m_currentWrapper];
                 wrapper.CallCount++;
 
-                wrapper.AdNetworkHandler.SetId(wrapper.Id);
+                if (wrapper.FailCount >= 3)
+
+                    wrapper.AdNetworkHandler.SetId(wrapper.Id);
 
                 if (!wrapper.AdNetworkHandler.Show(wrapper, m_data))
                     throw new ApplicationException("Ad wrapper " + wrapper.Name + " returned false");
-
             }
             catch (Exception ex)
             {
