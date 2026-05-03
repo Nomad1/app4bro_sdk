@@ -102,7 +102,7 @@ namespace Apps4Bro.Networks
             const bool banner = false;
 
             string url = string.Format(Apps4BroSDK.HouseAdUrl,
-                20/*m_unitId*/,
+                m_unitId,
                 m_adManager.AppId,
                 "",
                 AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
@@ -153,7 +153,7 @@ namespace Apps4Bro.Networks
                 // Track window resize so the popup keeps filling the window. Also
                 // covers the case where Window.Current.Bounds was momentarily at the
                 // 500×500 minimum when we read it.
-                m_sizeChangedHandler = OnWindowSizeChanged;
+                //m_sizeChangedHandler = OnWindowSizeChanged;
                 Window.Current.SizeChanged += m_sizeChangedHandler;
 
 #if USE_WEBVIEW2
@@ -335,7 +335,7 @@ namespace Apps4Bro.Networks
             return content != null ? content.GetType() : null;
         }
 
-        private void OnWindowSizeChanged(object sender, WindowSizeChangedEventArgs args)
+        /*private void OnWindowSizeChanged(object sender, WindowSizeChangedEventArgs args)
         {
             if (m_adGrid != null)
             {
@@ -347,7 +347,7 @@ namespace Apps4Bro.Networks
                 m_webView.Width = args.Size.Width;
                 m_webView.Height = args.Size.Height;
             }
-        }
+        }*/
 
         private void HideInternal()
         {
