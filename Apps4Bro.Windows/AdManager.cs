@@ -452,9 +452,7 @@ namespace Apps4Bro
                 wrapper = m_adWrappers[m_currentWrapper];
                 wrapper.CallCount++;
 
-                if (wrapper.FailCount >= 3)
-
-                    wrapper.AdNetworkHandler.SetId(wrapper.Id);
+                wrapper.AdNetworkHandler.SetId(wrapper.Id);
 
                 if (!wrapper.AdNetworkHandler.Show(wrapper, m_data))
                     throw new ApplicationException("Ad wrapper " + wrapper.Name + " returned false");
