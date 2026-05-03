@@ -7,6 +7,7 @@ using Windows.Graphics.Display;
 using Windows.System.Profile;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Controls.Primitives;
 
 #if USE_WEBVIEW2
 using Microsoft.Web.WebView2.Core;
@@ -23,9 +24,20 @@ namespace Apps4Bro.Networks
 #else
         private WebView m_webView;
 #endif
-        private Panel m_container;
+
+        // Hosting our own Popup means we don't need a host-supplied Panel: the WebView
+        // sits above the application's navigation Frame regardless of which page is
+        // currently active, and survives splash → MainPage transitions.
+        private Popup m_popup;
+        private Grid m_adGrid;
+
         private bool m_loaded;
         private bool m_dismissed;
+
+        // Page type the Frame was showing when Show() was called. If it changes
+        // before Display() runs (typical: splash → MainPage), the ad is silently
+        // discarded so it can't pop over a page that's already moved on.
+        private Type m_initialPageType;
 
         /// <summary>
         /// Fires once when the ad has been shown and is now closed (close button or click-out).
@@ -47,12 +59,9 @@ namespace Apps4Bro.Networks
         {
             base.Show(wrapper, data);
 
-            m_container = data as Panel;
-            if (m_container == null)
-                return false;
-
             m_loaded = false;
             m_dismissed = false;
+            m_initialPageType = GetCurrentPageType();
 
             try
             {
@@ -71,11 +80,9 @@ namespace Apps4Bro.Networks
 
         public override void Display()
         {
-            m_adManager.RunOnUiThread(() =>
-            {
-                if (m_webView != null)
-                    m_webView.Visibility = Visibility.Visible;
-            });
+            // No-op. HouseInter is hosting a Google ad tag inside the WebView; the page
+            // signals "ready" when the tag has actually rendered, at which point the
+            // WebView is self-shown from HandleMessage. There's no separate display step.
         }
 
         public override void Hide()
@@ -123,7 +130,17 @@ namespace Apps4Bro.Networks
                 m_webView.VerticalAlignment = VerticalAlignment.Stretch;
                 m_webView.Visibility = Visibility.Collapsed;
                 m_webView.DefaultBackgroundColor = Windows.UI.Colors.Black;
-                m_container.Children.Add(m_webView);
+
+                Rect bounds = Window.Current.Bounds;
+
+                m_adGrid = new Grid();
+                m_adGrid.Width = bounds.Width;
+                m_adGrid.Height = bounds.Height;
+                m_adGrid.Children.Add(m_webView);
+
+                m_popup = new Popup();
+                m_popup.Child = m_adGrid;
+                m_popup.IsOpen = true;
 
 #if USE_WEBVIEW2
                 await m_webView.EnsureCoreWebView2Async();
@@ -235,11 +252,23 @@ namespace Apps4Bro.Networks
             switch (msg)
             {
                 case "ready":
-                    if (!m_loaded)
+                    if (m_loaded)
+                        break;
+                    m_loaded = true;
+
+                    if (m_initialPageType != null && GetCurrentPageType() != m_initialPageType)
                     {
-                        m_loaded = true;
-                        m_adManager.AdLoaded(m_wrapper);
+                        // Foreground page changed while the Google tag was loading —
+                        // splash already moved on. Don't pop the ad over whatever
+                        // page is showing now; just discard silently.
+                        Debug.WriteLine("HouseInter ready after page change; discarding");
+                        HideInternal();
+                        break;
                     }
+
+                    if (m_webView != null)
+                        m_webView.Visibility = Visibility.Visible;
+                    m_adManager.AdLoaded(m_wrapper);
                     break;
 
                 case "404":
@@ -285,6 +314,13 @@ namespace Apps4Bro.Networks
             }
         }
 
+        private static Type GetCurrentPageType()
+        {
+            Frame frame = Window.Current != null ? Window.Current.Content as Frame : null;
+            object content = frame != null ? frame.Content : null;
+            return content != null ? content.GetType() : null;
+        }
+
         private void HideInternal()
         {
             try
@@ -309,8 +345,16 @@ namespace Apps4Bro.Networks
 
                 m_webView.Visibility = Visibility.Collapsed;
 
-                if (m_container != null && m_container.Children.Contains(m_webView))
-                    m_container.Children.Remove(m_webView);
+                if (m_adGrid != null && m_adGrid.Children.Contains(m_webView))
+                    m_adGrid.Children.Remove(m_webView);
+
+                if (m_popup != null)
+                {
+                    m_popup.IsOpen = false;
+                    m_popup.Child = null;
+                    m_popup = null;
+                }
+                m_adGrid = null;
 
 #if USE_WEBVIEW2
                 m_webView.Close();

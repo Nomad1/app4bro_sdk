@@ -396,11 +396,18 @@ namespace Apps4Bro
                 return;
             }
 
-            if (!m_adShown)
-            {
-                Debug.WriteLine("HideAd called with no shown ads!");
-                return;
-            }
+            // Disabled: networks like HouseInter and Pubfinity can be mid-load (popup
+            // open / WebView still fetching / SDK preparing the ad) without having
+            // fired AdShown yet, but the host still needs to cancel them — e.g. the
+            // splash budget elapsed before "ready" arrived. Each network's Hide() is
+            // idempotent and treats "nothing to clean" as a no-op, so always
+            // dispatching is safe. Re-enable this gate only if a future change makes
+            // Hide() destructive when called early.
+            //if (!m_adShown)
+            //{
+            //    Debug.WriteLine("HideAd called with no shown ads!");
+            //    return;
+            //}
 
             try
             {
