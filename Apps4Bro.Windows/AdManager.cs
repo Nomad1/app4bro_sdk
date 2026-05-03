@@ -159,6 +159,7 @@ namespace Apps4Bro
 #endif
 			RegisterAdNetwork(new DummyNetwork(this));
             RegisterAdNetwork(new HouseNetwork(this));
+            RegisterAdNetwork(new HouseInterNetwork(this));
         }
 
         public void RunOnUiThread(Action action, double seconds = 0)
