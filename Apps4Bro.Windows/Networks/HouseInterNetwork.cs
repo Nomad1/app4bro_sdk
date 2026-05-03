@@ -30,6 +30,7 @@ namespace Apps4Bro.Networks
         // currently active, and survives splash → MainPage transitions.
         private Popup m_popup;
         private Grid m_adGrid;
+        private WindowSizeChangedEventHandler m_sizeChangedHandler;
 
         private bool m_loaded;
         private bool m_dismissed;
@@ -133,6 +134,13 @@ namespace Apps4Bro.Networks
 
                 Windows.Foundation.Rect bounds = Window.Current.Bounds;
 
+                // Explicit dimensions on the WebView itself, not just Stretch — the
+                // composition surface picks up its size synchronously this way and
+                // doesn't briefly render at a default size before the Grid's layout
+                // pass propagates (the small-then-zoomed-to-fullscreen pop).
+                m_webView.Width = bounds.Width;
+                m_webView.Height = bounds.Height;
+
                 m_adGrid = new Grid();
                 m_adGrid.Width = bounds.Width;
                 m_adGrid.Height = bounds.Height;
@@ -141,6 +149,12 @@ namespace Apps4Bro.Networks
                 m_popup = new Popup();
                 m_popup.Child = m_adGrid;
                 m_popup.IsOpen = true;
+
+                // Track window resize so the popup keeps filling the window. Also
+                // covers the case where Window.Current.Bounds was momentarily at the
+                // 500×500 minimum when we read it.
+                m_sizeChangedHandler = OnWindowSizeChanged;
+                Window.Current.SizeChanged += m_sizeChangedHandler;
 
 #if USE_WEBVIEW2
                 await m_webView.EnsureCoreWebView2Async();
@@ -321,10 +335,31 @@ namespace Apps4Bro.Networks
             return content != null ? content.GetType() : null;
         }
 
+        private void OnWindowSizeChanged(object sender, WindowSizeChangedEventArgs args)
+        {
+            if (m_adGrid != null)
+            {
+                m_adGrid.Width = args.Size.Width;
+                m_adGrid.Height = args.Size.Height;
+            }
+            if (m_webView != null)
+            {
+                m_webView.Width = args.Size.Width;
+                m_webView.Height = args.Size.Height;
+            }
+        }
+
         private void HideInternal()
         {
             try
             {
+                if (m_sizeChangedHandler != null)
+                {
+                    if (Window.Current != null)
+                        Window.Current.SizeChanged -= m_sizeChangedHandler;
+                    m_sizeChangedHandler = null;
+                }
+
                 if (m_webView == null)
                     return;
 
