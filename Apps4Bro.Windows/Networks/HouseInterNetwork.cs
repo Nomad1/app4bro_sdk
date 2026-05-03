@@ -101,7 +101,7 @@ namespace Apps4Bro.Networks
             const bool banner = false;
 
             string url = string.Format(Apps4BroSDK.HouseAdUrl,
-                m_unitId,
+                20/*m_unitId*/,
                 m_adManager.AppId,
                 "",
                 AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
@@ -129,7 +129,7 @@ namespace Apps4Bro.Networks
                 m_webView.HorizontalAlignment = HorizontalAlignment.Stretch;
                 m_webView.VerticalAlignment = VerticalAlignment.Stretch;
                 m_webView.Visibility = Visibility.Collapsed;
-                m_webView.DefaultBackgroundColor = Windows.UI.Colors.Black;
+                //m_webView.DefaultBackgroundColor = Windows.UI.Colors.Black;
 
                 Windows.Foundation.Rect bounds = Window.Current.Bounds;
 
