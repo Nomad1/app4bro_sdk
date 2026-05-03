@@ -356,13 +356,14 @@ namespace Apps4Bro
                             Debug.WriteLine("Failed to register ad network " + network);
                     }
 
-                    if (wrappers.Count == 0)
+					m_adWrappers = wrappers.ToArray();
+
+					if (wrappers.Count == 0)
                     {
                         Debug.WriteLine("No ad networks registered!");
                     }
                     else
                     {
-                        m_adWrappers = wrappers.ToArray();
                         m_currentAdData = data;
                         Debug.WriteLine("Registered " + m_adWrappers.Length + " ad networks");
                         result = true;
