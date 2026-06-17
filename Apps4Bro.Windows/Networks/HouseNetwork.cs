@@ -14,7 +14,7 @@ namespace Apps4Bro.Networks
 {
     internal class HouseNetwork : BaseNetwork
     {
-        private ExternalBanner m_bannerView;
+        private BannerView m_bannerView;
 
         public override string Network
         {
@@ -48,7 +48,7 @@ namespace Apps4Bro.Networks
  //               bannerGrid.ActualWidth, bannerGrid.ActualHeight,
                 CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, Apps4BroSDK.AdvertisingId, banner.ToString().ToLower());
 
-            m_bannerView = new ExternalBanner(bannerGrid, new Uri(url));
+            m_bannerView = new BannerView(bannerGrid, new Uri(url));
 
             m_bannerView.OnError += HandleDidFailWithError;
             //m_bannerView.o += HandleDidClosed;
@@ -104,208 +104,6 @@ namespace Apps4Bro.Networks
             m_adManager.AdError(m_wrapper, "Error " + e);
 
             Hide();
-        }
-
-    }
-
-    public class ExternalBanner : IDisposable
-    {
-        private Uri m_uri;
-        private string m_text;
-        private WebView m_webView;
-        private readonly Panel m_container;
-        private Uri m_clickOverrideUri;
-
-        private event EventHandler m_onLoaded;
-        private event EventHandler<string> m_onError;
-        private event EventHandler<string> m_onClicked;
-        private event EventHandler<string> m_onNotify;
-
-        public Uri Uri
-        {
-            get { return m_uri; }
-            set { m_uri = value; }
-        }
-
-        public Uri ClickOverrideUri
-        {
-            get { return m_clickOverrideUri; }
-            set { m_clickOverrideUri = value; }
-        }
-
-        public string Text
-        {
-            get { return m_text; }
-            set { m_text = value; }
-        }
-
-        public event EventHandler OnLoaded
-        {
-            add { m_onLoaded += value; }
-            remove { m_onLoaded -= value; }
-        }
-
-        public event EventHandler<string> OnClicked
-        {
-            add { m_onClicked += value; }
-            remove { m_onClicked -= value; }
-        }
-
-        public event EventHandler<string> OnNotify
-        {
-            add { m_onNotify += value; }
-            remove { m_onNotify -= value; }
-        }
-
-        public event EventHandler<string> OnError
-        {
-            add { m_onError += value; }
-            remove { m_onError -= value; }
-        }
-
-        #region Constructors
-
-        public ExternalBanner(Panel container, Uri uri)
-        {
-            m_container = container;
-            m_uri = uri;
-            m_text = string.Empty;
-
-            InitBannerView();
-        }
-
-        public ExternalBanner(Panel container, string text)
-        {
-            m_container = container;
-            m_uri = null;
-            m_text = text;
-
-            InitBannerView();
-        }
-
-        public void Dispose()
-        {
-            if (m_webView == null)
-                return;
-
-            m_webView.Visibility = Visibility.Collapsed;
-
-            if (m_container.Children.Contains(m_webView))
-            {
-                m_container.Children.Remove(m_webView);
-            }
-        }
-        #endregion
-
-        private void InitBannerView()
-        {
-            m_webView = new WebView();
-            m_webView.HorizontalAlignment = HorizontalAlignment.Stretch;
-            m_webView.VerticalAlignment = VerticalAlignment.Stretch;
-            m_webView.Visibility = Visibility.Collapsed;
-            m_container.Children.Add(m_webView);
-        }
-
-        public void Load()
-        {
-            m_webView.LoadCompleted += OnLoadCompleted;
-            m_webView.NavigationFailed += OnNavigationFailed;
-            m_webView.ScriptNotify += OnScriptNotify;
-            m_webView.PointerEntered += OnPointerEntered;
-            m_webView.PointerExited += OnPointerExited;
-
-            if (m_clickOverrideUri != null)
-            {
-                m_webView.PointerPressed += OnPointerPressed;
-            }
-            else
-            {
-                m_webView.NewWindowRequested += OnNewWindowRequested;
-            }
-
-            if (m_uri != null)
-            {
-                Debug.WriteLine("Requesting banner from url: " + m_uri);
-
-               // m_webView.AllowedScriptNotifyUris = new Uri[] { m_uri };
-                m_webView.Navigate(m_uri);
-            }
-            else
-            {
-                Debug.WriteLine("Requesting banner text: " + m_text);
-
-                m_webView.NavigateToString(m_text);
-            }
-        }
-
-        public void Show()
-        {
-            m_webView.Visibility = Visibility.Visible;
-        }
-
-        private void OnPointerPressed(object sender, Windows.UI.Xaml.Input.PointerRoutedEventArgs e)
-        {
-            if (m_onClicked != null && m_clickOverrideUri != null)
-                m_onClicked(this, m_clickOverrideUri.ToString());
-        }
-
-        #region Callbacks
-
-        void OnScriptNotify(object sender, NotifyEventArgs e)
-        {
-            string value = e.Value;
-
-            Debug.WriteLine("Got external notify: " + value);
-
-            if (m_onNotify != null)
-                m_onNotify(this, value);
-        }
-
-        void OnNewWindowRequested(WebView sender, WebViewNewWindowRequestedEventArgs args)
-        {
-            args.Handled = true;
-
-            if (args.Uri != null && m_onClicked != null)
-                m_onClicked(this, args.Uri.ToString());
-        }
-
-        void OnNavigationFailed(object sender, WebViewNavigationFailedEventArgs e)
-        {
-            Debug.WriteLine("Navigation failed: " + e.WebErrorStatus);
-
-            Dispose();
-
-            if (m_onError != null)
-                m_onError(this, "Load error");
-        }
-
-        async void OnLoadCompleted(object sender, Windows.UI.Xaml.Navigation.NavigationEventArgs e)
-        {
-
-
-#if DEBUG
-			string retrieveHtml = "document.documentElement.outerHTML;";
-            string html = await m_webView.InvokeScriptAsync("eval", new[] { retrieveHtml });
-            Debug.WriteLine("HTML text: " + html);
-#endif
-
-            string setStyle = "document.body.style.overflow='hidden';document.body.style.margin='0';document.body.style.padding='0';";
-            await m_webView.InvokeScriptAsync("eval", new[] { setStyle });
-
-            if (m_onLoaded != null)
-                m_onLoaded(m_webView, null);
-        }
-
-        #endregion
-
-        void OnPointerExited(object sender, PointerRoutedEventArgs e)
-        {
-            Window.Current.CoreWindow.PointerCursor = new CoreCursor(Windows.UI.Core.CoreCursorType.Arrow, 2);
-        }
-
-        void OnPointerEntered(object sender, PointerRoutedEventArgs e)
-        {
-            Window.Current.CoreWindow.PointerCursor = new CoreCursor(Windows.UI.Core.CoreCursorType.Hand, 1);
         }
 
     }
