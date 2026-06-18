@@ -26,6 +26,8 @@ namespace Apps4Bro.Networks
 		private readonly Panel m_container;
         private Uri m_clickOverrideUri;
 
+        private volatile bool m_disposed;
+
         private event EventHandler m_onLoaded;
         private event EventHandler<string> m_onError;
         private event EventHandler<string> m_onClicked;
@@ -96,6 +98,9 @@ namespace Apps4Bro.Networks
 
         public void Dispose()
         {
+            if (m_disposed)
+                return;
+
             m_webView.Visibility = Visibility.Collapsed;
 
             if (m_container.Children.Contains(m_webView))
@@ -141,7 +146,11 @@ namespace Apps4Bro.Networks
             }
 #endif
 
-            if (m_uri != null)
+            if (m_disposed)
+                return;
+
+
+			if (m_uri != null)
             {
                 Debug.WriteLine("Requesting banner from url: " + m_uri);
 #if USE_WEBVIEW2
