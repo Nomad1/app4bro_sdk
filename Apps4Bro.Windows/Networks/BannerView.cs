@@ -185,8 +185,6 @@ namespace Apps4Bro.Networks
 
         #region Callbacks
 
-#region Callbacks
-
 #if USE_WEBVIEW2
         private void OnScriptNotify(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
         {

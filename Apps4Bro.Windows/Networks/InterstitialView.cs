@@ -91,7 +91,6 @@ namespace Apps4Bro.Networks
             m_webView.Source = url;
 #endif
         }
-        }
 
         public void Show()
         {
