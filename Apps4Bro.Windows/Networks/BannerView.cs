@@ -130,6 +130,8 @@ namespace Apps4Bro.Networks
 			m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
 			m_webView.CoreWebView2.Settings.IsPinchZoomEnabled = false;
 			m_webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+			m_webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            m_webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = false;
 			m_webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             m_webView.CoreWebView2.NavigationStarting += OnNavigationStarting;
             m_webView.CoreWebView2.WebMessageReceived += OnScriptNotify;
