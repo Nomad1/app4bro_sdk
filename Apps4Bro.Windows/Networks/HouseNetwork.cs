@@ -2,11 +2,7 @@
 
 using System.Globalization;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml;
 using System.Diagnostics;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Core;
-using Windows.ApplicationModel;
 using Windows.System.Profile;
 using Windows.Graphics.Display;
 
@@ -35,28 +31,31 @@ namespace Apps4Bro.Networks
             if (bannerGrid == null)
                 return false;
 
-            var displayInformation = DisplayInformation.GetForCurrentView();
+            if (m_bannerView == null)
+            {
+                var displayInformation = DisplayInformation.GetForCurrentView();
 
-            bool banner = true;
+                bool banner = true;
 
-            string url = string.Format(Apps4BroSDK.HouseAdUrl, m_unitId,
-                m_adManager.AppId,
-                "",
-                AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
-                "",
-                displayInformation.ScreenHeightInRawPixels, displayInformation.ScreenHeightInRawPixels,
- //               bannerGrid.ActualWidth, bannerGrid.ActualHeight,
-                CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, Apps4BroSDK.AdvertisingId, banner.ToString().ToLower());
+                string url = string.Format(Apps4BroSDK.HouseAdUrl, m_unitId,
+                    m_adManager.AppId,
+                    "",
+                    AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
+                    "",
+                    displayInformation.ScreenHeightInRawPixels, displayInformation.ScreenHeightInRawPixels,
+                    //               bannerGrid.ActualWidth, bannerGrid.ActualHeight,
+                    CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, Apps4BroSDK.AdvertisingId, banner.ToString().ToLower());
 
-            m_bannerView = new BannerView(bannerGrid, new Uri(url), string.Empty);
+                m_bannerView = new BannerView(bannerGrid, new Uri(url), string.Empty);
 
-            m_bannerView.OnError += HandleDidFailWithError;
-            //m_bannerView.o += HandleDidClosed;
-            m_bannerView.OnClicked += HandleWillLeaveApplication;
-            m_bannerView.OnNotify += HandleNotify;
-            //m_bannerView.on += HandleDidShownAd;
+                m_bannerView.OnError += HandleDidFailWithError;
+                //m_bannerView.o += HandleDidClosed;
+                m_bannerView.OnClicked += HandleWillLeaveApplication;
+                m_bannerView.OnNotify += HandleNotify;
+                //m_bannerView.on += HandleDidShownAd;
 
-            m_bannerView.Load();
+                m_bannerView.Load();
+            }
             return true;
         }
 

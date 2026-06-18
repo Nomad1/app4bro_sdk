@@ -101,7 +101,9 @@ namespace Apps4Bro.Networks
             if (m_disposed)
                 return;
 
-            m_webView.Visibility = Visibility.Collapsed;
+            m_disposed = true;
+
+			m_webView.Visibility = Visibility.Collapsed;
 
             if (m_container.Children.Contains(m_webView))
             {
@@ -120,8 +122,11 @@ namespace Apps4Bro.Networks
 
         public async void Load()
         {
+			if (m_disposed)
+				return;
+
 #if USE_WEBVIEW2
-            await m_webView.EnsureCoreWebView2Async();
+			await m_webView.EnsureCoreWebView2Async();
 			m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
 			m_webView.CoreWebView2.Settings.IsPinchZoomEnabled = false;
 			m_webView.CoreWebView2.Settings.IsZoomControlEnabled = false;

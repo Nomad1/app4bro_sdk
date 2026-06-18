@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Windows.Storage;
+
 
 #if __ANDROID__
 using Android.Gms.Ads.Identifier;
@@ -107,7 +109,18 @@ namespace Apps4Bro
                 );
                 thread.Start();
 #elif NETFX_CORE
-                s_platform = "win";
+
+                object id;
+
+                if (!ApplicationData.Current.LocalSettings.Values.TryGetValue("did", out id))
+                {
+                    s_advertisingId = Guid.NewGuid().ToString("N");
+                    ApplicationData.Current.LocalSettings.Values["did"] = s_advertisingId;
+                }
+                else
+                    s_advertisingId = id.ToString();
+
+				s_platform = "win";
 #endif
             }
             catch (Exception ex)
