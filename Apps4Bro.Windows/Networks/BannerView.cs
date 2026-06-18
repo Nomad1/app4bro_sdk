@@ -3,7 +3,6 @@ using System.Diagnostics;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
-using Windows.UI.Core;
 
 #if USE_WEBVIEW2
 using Microsoft.Web.WebView2.Core;
