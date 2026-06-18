@@ -53,7 +53,7 @@ namespace Apps4Bro.Networks
             m_bannerView.OnError += HandleDidFailWithError;
             //m_bannerView.o += HandleDidClosed;
             m_bannerView.OnClicked += HandleWillLeaveApplication;
-            m_bannerView.OnLoaded += HandleDidLoadedAd;
+            m_bannerView.OnNotify += HandleNotify;
             //m_bannerView.on += HandleDidShownAd;
 
             m_bannerView.Load();
@@ -75,14 +75,19 @@ namespace Apps4Bro.Networks
             }
         }
        
-        void HandleDidLoadedAd(object sender, EventArgs e)
+        void HandleNotify(object sender, string e)
         {
-            m_adManager.AdLoaded(m_wrapper);
-        }
-
-        void HandleDidShownAd(object sender, EventArgs e)
-        {
-            m_adManager.AdShown(m_wrapper, m_bannerView);
+            Debug.WriteLine("HouseBanner notify: " + e);
+            switch (e)
+            {
+                case "ready":
+                    m_adManager.AdLoaded(m_wrapper);
+                    break;
+                case "404":
+                    m_adManager.AdError(m_wrapper, "empty");
+                    Hide();
+                    break;
+            }
         }
 
         void HandleWillLeaveApplication(object sender, string e)

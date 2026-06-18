@@ -128,6 +128,7 @@ namespace Apps4Bro.Networks
         {
 #if USE_WEBVIEW2
             await m_webView.EnsureCoreWebView2Async();
+            m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             m_webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             m_webView.CoreWebView2.NavigationStarting += OnNavigationStarting;
             m_webView.CoreWebView2.WebMessageReceived += OnScriptNotify;
