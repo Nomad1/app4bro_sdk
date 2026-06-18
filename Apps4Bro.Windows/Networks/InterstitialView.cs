@@ -23,6 +23,8 @@ namespace Apps4Bro.Networks
         private Grid m_adGrid;
         private WindowSizeChangedEventHandler m_sizeChangedHandler;
 
+        private volatile bool m_disposed;
+
         public event EventHandler OnLoaded;
         public event EventHandler<string> OnError;
         public event EventHandler<string> OnClicked;
@@ -79,6 +81,9 @@ namespace Apps4Bro.Networks
         {
 #if USE_WEBVIEW2
             await m_webView.EnsureCoreWebView2Async();
+            if (m_disposed)
+                return;
+
             m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             m_webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             m_webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
@@ -113,6 +118,10 @@ namespace Apps4Bro.Networks
 
         public void Dispose()
         {
+            if (m_disposed)
+                return;
+            m_disposed = true;
+
             if (m_sizeChangedHandler != null)
             {
                 if (Window.Current != null)
