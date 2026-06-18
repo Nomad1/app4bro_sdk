@@ -91,6 +91,8 @@ namespace Apps4Bro.Networks
 
         void HandleWillLeaveApplication(object sender, string e)
         {
+            Window.Current.CoreWindow.PointerCursor = new CoreCursor(CoreCursorType.Arrow, 0);
+
             m_adManager.AdClicked(m_wrapper);
 
             Hide();
