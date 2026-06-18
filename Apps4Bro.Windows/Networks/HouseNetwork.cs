@@ -48,7 +48,7 @@ namespace Apps4Bro.Networks
  //               bannerGrid.ActualWidth, bannerGrid.ActualHeight,
                 CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, Apps4BroSDK.AdvertisingId, banner.ToString().ToLower());
 
-            m_bannerView = new BannerView(bannerGrid, new Uri(url));
+            m_bannerView = new BannerView(bannerGrid, new Uri(url), string.Empty);
 
             m_bannerView.OnError += HandleDidFailWithError;
             //m_bannerView.o += HandleDidClosed;
@@ -74,7 +74,7 @@ namespace Apps4Bro.Networks
                 m_bannerView = null;
             }
         }
-       
+
         void HandleNotify(object sender, string e)
         {
             Debug.WriteLine("HouseBanner notify: " + e);

@@ -18,12 +18,12 @@ namespace Apps4Bro.Networks
         private string m_text;
 
 #if USE_WEBVIEW2
-        private WebView2 m_webView;
+        private readonly WebView2 m_webView;
 #else
-        private WebView m_webView;
+        private readonly WebView m_webView;
 #endif
 
-        private readonly Panel m_container;
+		private readonly Panel m_container;
         private Uri m_clickOverrideUri;
 
         private event EventHandler m_onLoaded;
@@ -75,29 +75,27 @@ namespace Apps4Bro.Networks
 
         #region Constructors
 
-        public BannerView(Panel container, Uri uri)
+        public BannerView(Panel container, Uri uri, string text)
         {
             m_container = container;
             m_uri = uri;
-            m_text = string.Empty;
-
-            InitBannerView();
-        }
-
-        public BannerView(Panel container, string text)
-        {
-            m_container = container;
-            m_uri = null;
             m_text = text;
 
             InitBannerView();
-        }
+
+#if USE_WEBVIEW2
+			m_webView = new WebView2();
+#else
+            m_webView = new WebView();
+#endif
+			m_webView.HorizontalAlignment = HorizontalAlignment.Stretch;
+			m_webView.VerticalAlignment = VerticalAlignment.Stretch;
+			m_webView.Visibility = Visibility.Collapsed;
+			m_container.Children.Add(m_webView);
+		}
 
         public void Dispose()
         {
-            if (m_webView == null)
-                return;
-
             m_webView.Visibility = Visibility.Collapsed;
 
             if (m_container.Children.Contains(m_webView))
@@ -107,29 +105,22 @@ namespace Apps4Bro.Networks
 #if USE_WEBVIEW2
             m_webView.Close();
 #endif
-            m_webView = null;
         }
         #endregion
 
         private void InitBannerView()
         {
-#if USE_WEBVIEW2
-            m_webView = new WebView2();
-#else
-            m_webView = new WebView();
-#endif
-            m_webView.HorizontalAlignment = HorizontalAlignment.Stretch;
-            m_webView.VerticalAlignment = VerticalAlignment.Stretch;
-            m_webView.Visibility = Visibility.Collapsed;
-            m_container.Children.Add(m_webView);
+
         }
 
         public async void Load()
         {
 #if USE_WEBVIEW2
             await m_webView.EnsureCoreWebView2Async();
-            m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-            m_webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
+			m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+			m_webView.CoreWebView2.Settings.IsPinchZoomEnabled = false;
+			m_webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+			m_webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             m_webView.CoreWebView2.NavigationStarting += OnNavigationStarting;
             m_webView.CoreWebView2.WebMessageReceived += OnScriptNotify;
             m_webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested2;
@@ -201,12 +192,11 @@ namespace Apps4Bro.Networks
 
         private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
         {
-            // Similar to WebView1 logic could be added here if needed
-        }
+		}
 
         private void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
         {
-            if (!args.IsSuccess)
+			if (!args.IsSuccess)
             {
                 Debug.WriteLine("Navigation failed: " + args.WebErrorStatus);
                 Dispose();
