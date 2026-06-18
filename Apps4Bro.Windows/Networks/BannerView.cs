@@ -128,14 +128,11 @@ namespace Apps4Bro.Networks
         {
 #if USE_WEBVIEW2
             await m_webView.EnsureCoreWebView2Async();
-            m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+            m_webView.CoreWebView2InitializationCompleted += OnCoreWebView2InitializationCompleted;
             m_webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             m_webView.CoreWebView2.NavigationStarting += OnNavigationStarting;
             m_webView.CoreWebView2.WebMessageReceived += OnScriptNotify;
             m_webView.CoreWebView2.NewWindowRequested += OnNewWindowRequested2;
-            
-            // Pointer events are tricky for WebView2, they might need different handling
-            // or CSS/JS-based clicking. Sticking to original logic as much as possible.
 #else
             m_webView.LoadCompleted += OnLoadCompleted;
             m_webView.NavigationFailed += OnNavigationFailed;
@@ -189,6 +186,14 @@ namespace Apps4Bro.Networks
         #region Callbacks
 
 #if USE_WEBVIEW2
+        private void OnCoreWebView2InitializationCompleted(CoreWebView2 sender, CoreWebView2InitializationCompletedEventArgs args)
+        {
+            if (args.IsSuccess)
+            {
+                sender.Settings.AreDefaultContextMenusEnabled = false;
+            }
+        }
+
         private void OnScriptNotify(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
         {
              if (m_onNotify != null)

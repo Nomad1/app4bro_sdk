@@ -79,13 +79,16 @@ namespace Apps4Bro.Networks
         {
 #if USE_WEBVIEW2
             await m_webView.EnsureCoreWebView2Async();
-            m_webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-            m_webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
-            m_webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+            m_webView.CoreWebView2InitializationCompleted += OnCoreWebView2InitializationCompleted;
+            m_webView.CoreWebView2.WebMessageReceived += onWebMessageReceived;
+            m_webView.CoreWebView2.NewWindowRequested += onNewWindowRequested;
+            m_webView.CoreWebView2.NavigationStarting += onNavigationStarting;
+            m_webView.CoreWebView2.NavigationCompleted += onNavigationCompleted;
             m_webView.Source = url;
 #else
             m_webView.Source = url;
 #endif
+        }
         }
 
         public void Show()
@@ -148,6 +151,16 @@ namespace Apps4Bro.Networks
         }
 
 #if USE_WEBVIEW2
+        private void OnCoreWebView2InitializationCompleted(CoreWebView2 sender, CoreWebView2InitializationCompletedEventArgs args)
+        {
+            if (args.IsSuccess)
+            {
+                sender.Settings.AreDefaultContextMenusEnabled = false;
+                sender.Settings.AreDevToolsEnabled = false;
+                sender.Settings.IsZoomControlEnabled = false;
+            }
+        }
+
         private void onWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
         {
             if (OnNotify != null)
