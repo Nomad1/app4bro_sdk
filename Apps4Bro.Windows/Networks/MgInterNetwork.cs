@@ -26,7 +26,6 @@ namespace Apps4Bro.Networks
 			try
 			{
 				m_adManager.RunOnUiThread(initAndShow);
-				//initAndShow(); // block execution to show the ad on startup
 			}
 			catch (Exception ex)
 			{
@@ -44,11 +43,13 @@ namespace Apps4Bro.Networks
 			{
 				if (!ApplicationManager.SetupCompletedSuccessfully)
 				{
+					//await ApplicationManager.OpenCmpAsync(m_appId);
+
 					var initResult = await ApplicationManager.SetupAsync(m_appId);
 					if (!initResult.ReturnValue)
 					{
 						Debug.WriteLine("Failed to init MG advertising: " + initResult.ErrorMessage);
-						m_adManager.ReportManager.ReportEvent("MG_EXCEPTION", initResult.ErrorMessage);
+						//m_adManager.ReportManager.ReportEvent("MG_EXCEPTION", initResult.ErrorMessage);
 						m_inited = AdNetworkInitStatus.Error;
 						return;
 					}
@@ -62,7 +63,7 @@ namespace Apps4Bro.Networks
 
 			try
 			{
-				var bannerAd = await AdvertisingManager.ShowAd(m_unitId, AdType.FullScreen, new FullScreenAdSettingOptions
+			   var bannerAd = await AdvertisingManager.ShowAd(m_unitId, AdType.FullScreen, new FullScreenAdSettingOptions
 				{
 					DisplayCloseButton = true
 				});
