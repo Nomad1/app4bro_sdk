@@ -91,7 +91,7 @@ namespace Apps4Bro.Networks
 
         void HandleWillLeaveApplication(object sender, string e)
         {
-            Window.Current.CoreWindow.PointerCursor = new CoreCursor(CoreCursorType.Arrow, 0);
+            Windows.UI.Xaml.Window.Current.CoreWindow.PointerCursor = new Windows.UI.Core.CoreCursor(Windows.UI.Core.CoreCursorType.Arrow, 0);
 
             m_adManager.AdClicked(m_wrapper);
 
