@@ -11,6 +11,11 @@ class DummyNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.All;
+    }
+
     public DummyNetwork()
     {
     }

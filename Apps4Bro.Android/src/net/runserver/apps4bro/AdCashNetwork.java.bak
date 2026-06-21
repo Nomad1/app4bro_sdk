@@ -18,6 +18,11 @@ class AdCashNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public AdCashNetwork(AdManager manager)
     {
         m_manager = manager;
@@ -150,7 +155,7 @@ class AdCashNetwork implements AdNetworkHandler
                     message = "Some other problem";
                     break;
             }
-            m_manager.adError(m_data, message);
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, message);
         }
 
         @Override

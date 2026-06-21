@@ -17,6 +17,11 @@ class MobFoxNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public MobFoxNetwork(AdManager manager)
     {
         m_manager = manager;
@@ -114,7 +119,7 @@ class MobFoxNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "MobFox Failed to load ad: " + e);
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "MobFox Failed to load ad: " + e);
         }
 
         @Override

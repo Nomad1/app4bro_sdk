@@ -20,6 +20,11 @@ class AppodealNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public AppodealNetwork(AdManager manager)
     {
         m_manager = manager;
@@ -142,7 +147,7 @@ class AppodealNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "AppoDeal Interstitial Ad failed to load");
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "AppoDeal Interstitial Ad failed to load");
         }
 
         @Override
@@ -158,7 +163,7 @@ class AppodealNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "AppoDeal Interstitial Ad failed to load");
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "AppoDeal Interstitial Ad failed to load");
         }
 
         @Override
@@ -197,7 +202,7 @@ class AppodealNetwork implements AdNetworkHandler
                 {
                     m_state = AdState.Failed;
 
-                    m_manager.adError(m_data, "AppoDeal SkippableVideo Ad failed to load");
+                    m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "AppoDeal SkippableVideo Ad failed to load");
                 }
 
                 @Override
@@ -242,7 +247,7 @@ class AppodealNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "AppoDeal NonSkippableVideo Ad failed to load");
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "AppoDeal NonSkippableVideo Ad failed to load");
         }
 
         @Override
@@ -258,7 +263,7 @@ class AppodealNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "AppoDeal NonSkippableVideo Ad failed to load");
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "AppoDeal NonSkippableVideo Ad failed to load");
         }
 
         @Override

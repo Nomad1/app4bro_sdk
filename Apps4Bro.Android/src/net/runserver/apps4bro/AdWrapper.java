@@ -25,6 +25,11 @@ public class AdWrapper
         return m_name;
     }
 
+    public int getType()
+    {
+        return m_adNetworkHandler.getType();
+    }
+
     public AdEnums.AdState getRequestState()
     {
         return m_adRequest == null ? AdEnums.AdState.None : m_adRequest.getState();

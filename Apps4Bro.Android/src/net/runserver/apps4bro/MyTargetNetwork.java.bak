@@ -15,6 +15,11 @@ class MyTargetNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public MyTargetNetwork(AdManager manager)
     {
         m_manager = manager;
@@ -110,7 +115,7 @@ class MyTargetNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "MyTarget Failed to load ad: " + reason);
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "MyTarget Failed to load ad: " + reason);
         }
 
 //        @Override

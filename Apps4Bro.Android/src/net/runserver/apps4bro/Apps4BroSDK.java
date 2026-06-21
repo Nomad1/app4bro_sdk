@@ -1,5 +1,7 @@
 package net.runserver.apps4bro;
 
+import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.os.Build;
 import android.util.Log;
@@ -15,6 +17,10 @@ import java.net.URLEncoder;
 import java.util.Locale;
 
 import com.google.android.gms.ads.identifier.AdvertisingIdClient;
+import com.google.android.ump.ConsentForm;
+import com.google.android.ump.FormError;
+
+import androidx.annotation.Nullable;
 
 public final class Apps4BroSDK
 {
@@ -29,8 +35,8 @@ public final class Apps4BroSDK
 
     public final static String App4BroTag = "app4bro";
     public final static String ReportUrl = "https://app4bro.runserver.net/app4bro/event.php?id=%1$s&app=%2$s&event=%3$s&param=%4$s&time=%5$d&eventid=%6$s";
-    public final static String AdManagerUrl = "https://app4bro.runserver.net/app4bro/ad.php?id=%1$s&app=%2$s&lang=%3$s&sdk=%4$s&os=%5$s";
-    public final static String AdManagerUrlShort = "https://app4bro.runserver.net/app4bro/ad.php?app=%1$s";
+    public final static String AdManagerUrl = "https://app4bro.runserver.net/route/%2$s/?id=%1$s&lang=%3$s&sdk=%4$s&os=%5$s";
+    public final static String AdManagerUrlShort = "https://app4bro.runserver.net/route/%1$s/";
 
     public final static String HouseAdUrl = "https://app4bro.runserver.net/app4bro/house.php?id=%1$s&app=%2$s&brand=%3$s&model=%4$s&operator=%5$s&width=%6$d&height=%7$d&lang=%8$s&sdk=%9$s&os=%10$s&did=%11$s";
     public final static int HouseAdTimeout = 10;
@@ -57,6 +63,20 @@ public final class Apps4BroSDK
         s_inited = true;
         s_platform = Build.MANUFACTURER.equals("Amazon") ? "amazon" : "android";
 
+        if (isSystemLanguageUkrainian(context))
+            return;
+
+        if (context instanceof CardApplication)
+        {
+            ConsentManager.getInstance(context).showPrivacyOptionsForm(((CardApplication)context).getCurrentActivity(), new ConsentForm.OnConsentFormDismissedListener()
+            {
+                @Override
+                public void onConsentFormDismissed(@Nullable FormError formError)
+                {
+
+                }
+            });
+        }
 
         // Initialize Google advertising id
         new Thread(() ->
@@ -86,6 +106,16 @@ public final class Apps4BroSDK
         {
             ex.printStackTrace();
         }
+    }
+
+    private static boolean isSystemLanguageUkrainian(final Context context) {
+        Locale currentLocale;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            currentLocale = context.getResources().getConfiguration().getLocales().get(0);
+        } else {
+            currentLocale = context.getResources().getConfiguration().locale;
+        }
+        return currentLocale.getLanguage().equals(new Locale("uk").getLanguage());
     }
 
 //    @NonNull

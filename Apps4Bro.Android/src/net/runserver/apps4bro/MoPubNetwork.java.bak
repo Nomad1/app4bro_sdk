@@ -17,6 +17,11 @@ class MoPubNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public MoPubNetwork(AdManager manager)
     {
         m_manager = manager;
@@ -118,7 +123,7 @@ class MoPubNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "MoPub Failed to load ad: " + errorCode);
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "MoPub Failed to load ad: " + errorCode);
         }
 
         @Override

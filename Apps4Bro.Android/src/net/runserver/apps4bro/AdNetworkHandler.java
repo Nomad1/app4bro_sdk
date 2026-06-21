@@ -6,6 +6,9 @@ public interface AdNetworkHandler
 {
     String getNetwork();
 
+    /** One of {@link AdEnums.NetworkType} values declaring what category of ad this handler serves. */
+    int getType();
+
     AdObject request(final AdManager manager, String id, Object data);
 
     interface AdObject

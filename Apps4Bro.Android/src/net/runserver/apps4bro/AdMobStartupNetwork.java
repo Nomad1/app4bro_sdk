@@ -4,13 +4,17 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.google.android.gms.ads.*;
-import com.google.android.gms.ads.interstitial.*;
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.appopen.AppOpenAd;
+import com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback;
 
-class AdMobNetwork implements AdNetworkHandler
+class AdMobStartupNetwork implements AdNetworkHandler
 {
-    private final static String TAG = "AdMob";
-    private final static String TAG_NPA = "AdMobNPA";
+    private final static String TAG = "AdMobStartup";
+    private final static String TAG_NPA = "AdMobStartupNPA";
     private final boolean m_npa;
 
     public String getNetwork()
@@ -20,10 +24,10 @@ class AdMobNetwork implements AdNetworkHandler
 
     public int getType()
     {
-        return AdEnums.NetworkType.Interstitial;
+        return AdEnums.NetworkType.AppOpen;
     }
 
-    public AdMobNetwork(boolean npa)
+    public AdMobStartupNetwork(boolean npa)
     {
         m_npa = npa;
     }
@@ -31,15 +35,12 @@ class AdMobNetwork implements AdNetworkHandler
     public AdObject request(final AdManager manager, final String id, final Object data)
     {
         Log.d(TAG, "Running network " + getNetwork() + "[" + id + "]");
-//        final InterstitialAd interstitial = new InterstitialAd(m_manager.getContext());
-//        interstitial.setAdUnitId(id);
 
         AdRequest request;
-        if (m_npa || Apps4BroSDK.isAdTrackingLimited()) // TODO: think of user consent for AdMob
+        if (m_npa || Apps4BroSDK.isAdTrackingLimited())
         {
             Bundle extras = new Bundle();
             extras.putString("npa", "1");
-
 
             request = new AdRequest.Builder()
                     .addNetworkExtrasBundle(com.google.ads.mediation.admob.AdMobAdapter.class, extras)
@@ -47,22 +48,20 @@ class AdMobNetwork implements AdNetworkHandler
         } else
             request = new AdRequest.Builder().build();
 
+        AdMobStartupAd result = new AdMobStartupAd(manager, id, data);
 
-        AdMobAd result = new AdMobAd(manager, id, data);
-
-        InterstitialAd.load(manager.getApplicationContext(), id, request, result);
-//        interstitial.loadAd(request);
+        AppOpenAd.load(manager.getApplicationContext(), id, request, result);
 
         return result;
     }
 
-    class AdMobAd extends InterstitialAdLoadCallback implements AdObject
+    class AdMobStartupAd extends AppOpenAdLoadCallback implements AdObject
     {
         private final String m_id;
         private final Object m_data;
         private final AdManager m_manager;
 
-        private InterstitialAd m_interstitial;
+        private AppOpenAd m_appOpenAd;
         private AdEnums.AdState m_state;
 
         public String getId()
@@ -75,7 +74,7 @@ class AdMobNetwork implements AdNetworkHandler
             return m_state;
         }
 
-        public AdMobAd(AdManager manager, String id, Object data)
+        public AdMobStartupAd(AdManager manager, String id, Object data)
         {
             m_id = id;
             m_manager = manager;
@@ -87,16 +86,15 @@ class AdMobNetwork implements AdNetworkHandler
         {
             try
             {
-                if (m_interstitial == null)
+                if (m_appOpenAd == null)
                 {
                     m_state = AdEnums.AdState.Failed;
                     return false;
                 }
 
-                m_interstitial.show(context);
-                // State transitions to Shown via onAdShowedFullScreenContent,
-                // or to Failed via onAdFailedToShowFullScreenContent — don't
-                // preempt here, the actual callback is the source of truth.
+                m_appOpenAd.show(context);
+                // State transitions to Shown via onAdShowedFullScreenContent, or to
+                // Failed via onAdFailedToShowFullScreenContent — actual callback wins.
 
                 return true;
             }
@@ -112,7 +110,7 @@ class AdMobNetwork implements AdNetworkHandler
         {
             m_state = AdEnums.AdState.Closed;
 
-            // no way to hide AdMob Interstitials?
+            // App Open Ads have no hide API; lifecycle drives dismissal.
         }
 
         @Override
@@ -135,11 +133,11 @@ class AdMobNetwork implements AdNetworkHandler
                     break;
             }
 
-            m_manager.adError(m_data, code, "AdMob: " + error.toString());
+            m_manager.adError(m_data, code, "AdMobStartup: " + error.toString());
         }
 
         @Override
-        public void onAdLoaded(InterstitialAd interstitialAd)
+        public void onAdLoaded(AppOpenAd appOpenAd)
         {
             FullScreenContentCallback fullScreenContentCallback = new FullScreenContentCallback() {
                 @Override
@@ -171,12 +169,12 @@ class AdMobNetwork implements AdNetworkHandler
                 {
                     m_state = AdEnums.AdState.Failed;
 
-                    m_manager.adFailedToShow(m_data, "AdMob: " + error.toString());
+                    m_manager.adFailedToShow(m_data, "AdMobStartup: " + error.toString());
                 }
             };
 
-            m_interstitial = interstitialAd;
-            m_interstitial.setFullScreenContentCallback(fullScreenContentCallback);
+            m_appOpenAd = appOpenAd;
+            m_appOpenAd.setFullScreenContentCallback(fullScreenContentCallback);
 
             m_state = AdEnums.AdState.Ready;
 

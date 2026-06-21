@@ -18,6 +18,11 @@ class FlyMobNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public FlyMobNetwork(AdManager manager)
     {
         m_manager = manager;
@@ -113,7 +118,7 @@ class FlyMobNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "MoPub Failed to load ad: " + response);
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "MoPub Failed to load ad: " + response);
         }
 
         @Override
@@ -129,7 +134,7 @@ class FlyMobNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, "FlyMob ad expired");
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "FlyMob ad expired");
         }
 
         @Override

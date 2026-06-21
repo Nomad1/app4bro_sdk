@@ -28,6 +28,11 @@ class HouseNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public HouseNetwork()
     {
     }
@@ -126,7 +131,7 @@ class HouseNetwork implements AdNetworkHandler
         public void onError(String error)
         {
             m_state = AdEnums.AdState.Failed;
-            m_manager.adError(m_data, "Error " + error);
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, "House: " + error);
             hide();
         }
 

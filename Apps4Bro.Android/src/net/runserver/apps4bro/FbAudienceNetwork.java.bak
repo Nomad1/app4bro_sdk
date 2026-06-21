@@ -17,6 +17,11 @@ public class FbAudienceNetwork implements AdNetworkHandler
         return TAG;
     }
 
+    public int getType()
+    {
+        return AdEnums.NetworkType.Interstitial;
+    }
+
     public FbAudienceNetwork(AdManager manager)
     {
         m_manager = manager;
@@ -136,7 +141,7 @@ public class FbAudienceNetwork implements AdNetworkHandler
         {
             m_state = AdState.Failed;
 
-            m_manager.adError(m_data, TAG + " Failed to load ad: " + adError.getErrorMessage());
+            m_manager.adError(m_data, AdEnums.AdManagerError.FailedToLoad, TAG + " Failed to load ad: " + adError.getErrorMessage());
         }
 
         @Override
