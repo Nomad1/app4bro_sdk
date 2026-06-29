@@ -143,9 +143,20 @@ namespace Apps4Bro
 
         private string FormatRequest()
         {
+            // New args (App4Bro ID in path + id=; analytics name in app=; did= trails):
+            //   {0} = App4Bro app ID (e.g. "5" for Klondike)
+            //   {1} = bundle identifier (analytics)
+            //   {2} = language code
+            //   {3} = SDK version
+            //   {4} = platform name
+            //   {5} = device advertising ID (may be empty)
             return string.Format(Apps4BroSDK.AdManagerUrl,
-                Apps4BroSDK.AdvertisingId,
-                m_appId
+                m_appId,
+                Foundation.NSBundle.MainBundle.BundleIdentifier ?? "",
+                System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName,
+                Apps4BroSDK.Version,
+                Apps4BroSDK.Platform,
+                Apps4BroSDK.AdvertisingId ?? ""
             );
         }
 

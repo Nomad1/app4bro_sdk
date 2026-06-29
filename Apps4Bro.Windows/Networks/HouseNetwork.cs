@@ -37,14 +37,19 @@ namespace Apps4Bro.Networks
 
                 bool banner = true;
 
+                string analyticsName = "";
+                try { analyticsName = Windows.ApplicationModel.Package.Current.Id.FamilyName; } catch { }
+                var pkgVer = Windows.ApplicationModel.Package.Current.Id.Version;
+                string appVer = pkgVer.Major + "." + pkgVer.Minor + "." + pkgVer.Build + "." + pkgVer.Revision;
+
                 string url = string.Format(Apps4BroSDK.HouseAdUrl, m_unitId,
-                    m_adManager.AppId,
+                    analyticsName,
                     "",
-                    AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
                     "",
-                    displayInformation.ScreenHeightInRawPixels, displayInformation.ScreenHeightInRawPixels,
-                    //               bannerGrid.ActualWidth, bannerGrid.ActualHeight,
-                    CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, Apps4BroSDK.AdvertisingId, banner.ToString().ToLower());
+                    "",
+                    displayInformation.ScreenWidthInRawPixels, displayInformation.ScreenHeightInRawPixels,
+                    CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform,
+                    AnalyticsInfo.VersionInfo.DeviceFamilyVersion, appVer, Apps4BroSDK.AdvertisingId, banner.ToString().ToLower());
 
                 m_bannerView = new BannerView(bannerGrid, new Uri(url), string.Empty);
 

@@ -85,17 +85,24 @@ namespace Apps4Bro.Networks
             DisplayInformation displayInformation = DisplayInformation.GetForCurrentView();
             const bool banner = false;
 
+            string analyticsName = "";
+            try { analyticsName = Windows.ApplicationModel.Package.Current.Id.FamilyName; } catch { }
+            var pkgVer = Windows.ApplicationModel.Package.Current.Id.Version;
+            string appVer = pkgVer.Major + "." + pkgVer.Minor + "." + pkgVer.Build + "." + pkgVer.Revision;
+
             string url = string.Format(Apps4BroSDK.HouseAdUrl,
                 m_unitId,
-                m_adManager.AppId,
+                analyticsName,
                 "",
-                AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
+                "",
                 "",
                 displayInformation.ScreenWidthInRawPixels,
                 displayInformation.ScreenHeightInRawPixels,
                 CultureInfo.CurrentCulture.TwoLetterISOLanguageName,
                 Apps4BroSDK.Version,
                 Apps4BroSDK.Platform,
+                AnalyticsInfo.VersionInfo.DeviceFamilyVersion,
+                appVer,
                 Apps4BroSDK.AdvertisingId,
                 banner.ToString().ToLower());
 

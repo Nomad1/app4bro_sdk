@@ -2,6 +2,7 @@ using UIKit;
 using Foundation;
 using System.Text;
 using System;
+using System.Runtime.InteropServices;
 using CoreTelephony;
 
 using System.Globalization;
@@ -165,7 +166,11 @@ namespace Apps4Bro.Networks
                 carrierName = null;
             }
 
-            string url = string.Format(Apps4BroSDK.HouseAdUrl, m_zoneId, NSBundle.MainBundle.BundleIdentifier, UrlEncode(model), version, UrlEncode(carrierName), Frame.Size.Width, Frame.Size.Height, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, Apps4BroSDK.AdvertisingId);
+            string appVer = NSBundle.MainBundle.ObjectForInfoDictionary("CFBundleShortVersionString")?.ToString() ?? "";
+            // `model` (above) is the generic category "iPhone"/"iPad"; replace with the
+            // specific hardware identifier (e.g. "iPhone15,2") via sysctlbyname.
+            string deviceId = DeviceIdentifier();
+            string url = string.Format(Apps4BroSDK.HouseAdUrl, m_zoneId, NSBundle.MainBundle.BundleIdentifier, "Apple", UrlEncode(deviceId), UrlEncode(carrierName), Frame.Size.Width, Frame.Size.Height, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, Apps4BroSDK.Version, Apps4BroSDK.Platform, version, appVer, Apps4BroSDK.AdvertisingId);
 
             Console.WriteLine("Requesting banner from url: " + url);
 
@@ -214,6 +219,29 @@ namespace Apps4Bro.Networks
         #endregion
 
         #region Helpers
+
+        [DllImport("/usr/lib/libSystem.dylib", EntryPoint = "sysctlbyname")]
+        private static extern int sysctlbyname([MarshalAs(UnmanagedType.LPStr)] string name, IntPtr oldp, ref IntPtr oldlenp, IntPtr newp, IntPtr newlen);
+
+        /// <summary>Returns the hardware identifier string ("iPhone15,2"). Empty on failure.</summary>
+        private static string DeviceIdentifier()
+        {
+            try
+            {
+                IntPtr len = (IntPtr)0;
+                if (sysctlbyname("hw.machine", IntPtr.Zero, ref len, IntPtr.Zero, IntPtr.Zero) != 0) return "";
+                int length = len.ToInt32();
+                if (length <= 0) return "";
+                IntPtr buf = Marshal.AllocHGlobal(length);
+                try
+                {
+                    if (sysctlbyname("hw.machine", buf, ref len, IntPtr.Zero, IntPtr.Zero) != 0) return "";
+                    return Marshal.PtrToStringAnsi(buf) ?? "";
+                }
+                finally { Marshal.FreeHGlobal(buf); }
+            }
+            catch { return ""; }
+        }
 
         private static string UrlEncode(string source)
         {

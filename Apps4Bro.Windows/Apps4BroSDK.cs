@@ -21,7 +21,7 @@ namespace Apps4Bro
     public static class Apps4BroSDK
     {
         private static readonly string s_emptyId = "00000000-0000-0000-0000-000000000000";
-        public static readonly int Version = 122;
+        public static readonly int Version = 130;
 
         private static string s_advertisingId = s_emptyId;
         private static bool s_inited = false;
@@ -31,9 +31,30 @@ namespace Apps4Bro
         private static string s_platform = "unknown";
 
         internal readonly static string ReportUrl = "https://app4bro.runserver.net/app4bro/event.php?id={0}&app={1}&event={2}&param={3}&time={4}&eventid={5}";
-        internal readonly static string AdManagerUrl = "https://app4bro.runserver.net/app4bro/ad.php?id={0}&app={1}";
 
-        internal readonly static string HouseAdUrl = "https://app4bro.runserver.net/app4bro/house.php?id={0}&app={1}&brand={2}&model={3}&operator={4}&width={5}&height={6}&lang={7}&sdk={8}&os={9}&did={10}&noclose={11}";
+        // /route/<App4Bro-ID>/ — path-embedded routing. Query params:
+        //   id    = App4Bro app ID (same value as the path segment). Routing key.
+        //   app   = analytics name (package family name). Cosmetic.
+        //   lang/sdk/os = metadata.
+        //   did   = device advertising ID. Trailing; may be empty.
+        internal readonly static string AdManagerUrl = "https://app4bro.runserver.net/route/{0}/?id={0}&app={1}&lang={2}&sdk={3}&os={4}&did={5}";
+        internal readonly static string AdManagerUrlShort = "https://app4bro.runserver.net/route/{0}/";
+
+        // HouseAdUrl args:
+        //   {0}  id         — house zone ID (NOT the App4Bro app ID)
+        //   {1}  app        — analytics name (package family name — same as AdManagerUrl)
+        //   {2}  brand
+        //   {3}  model
+        //   {4}  operator
+        //   {5}  width, {6} height
+        //   {7}  lang
+        //   {8}  sdk        — Apps4BroSDK.Version
+        //   {9}  os
+        //   {10} osver      — OS version (AnalyticsInfo.VersionInfo.DeviceFamilyVersion)
+        //   {11} appver     — host app version (Package.Current.Id.Version stringified)
+        //   {12} did        — device advertising ID (trailing; may be empty)
+        //   {13} noclose    — banner vs interstitial close-button flag
+        internal readonly static string HouseAdUrl = "https://app4bro.runserver.net/app4bro/house.php?id={0}&app={1}&brand={2}&model={3}&operator={4}&width={5}&height={6}&lang={7}&sdk={8}&os={9}&osver={10}&appver={11}&did={12}&noclose={13}";
         internal readonly static int HouseAdTimeout = 10;
 
         internal static IDictionary<Apps4BroSettings, object> Settings = new Dictionary<Apps4BroSettings, object>();

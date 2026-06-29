@@ -314,7 +314,13 @@ class HouseNetwork implements AdNetworkHandler
                 TelephonyManager manager = (TelephonyManager) appContext.getSystemService(Context.TELEPHONY_SERVICE);
                 String carrierName = manager.getNetworkOperatorName();
 
-                String url = String.format(Apps4BroSDK.HouseAdUrl, m_zoneId, appContext.getPackageName(), URLEncoder.encode(Build.MANUFACTURER), URLEncoder.encode(Build.MODEL), URLEncoder.encode(carrierName), w, h, Locale.getDefault().getLanguage(), Apps4BroSDK.Version, Apps4BroSDK.getPlatform(), Apps4BroSDK.getAdvertisingId());
+                String appVer = "";
+                try {
+                    appVer = appContext.getPackageManager().getPackageInfo(appContext.getPackageName(), 0).versionName;
+                } catch (Exception e) {
+                    Log.e("App4Bro", "appver lookup failed: " + e.getMessage());
+                }
+                String url = String.format(Apps4BroSDK.HouseAdUrl, m_zoneId, appContext.getPackageName(), URLEncoder.encode(Build.MANUFACTURER), URLEncoder.encode(Build.MODEL), URLEncoder.encode(carrierName), w, h, Locale.getDefault().getLanguage(), Apps4BroSDK.Version, Apps4BroSDK.getPlatform(), Build.VERSION.RELEASE, appVer == null ? "" : appVer, Apps4BroSDK.getAdvertisingId());
 
                 Log.d(TAG, "process url: " + url);
 
