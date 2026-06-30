@@ -6,6 +6,7 @@ import UIKit
 // backend, and dispatches the public `loadAd`/`displayAd`/`hideAd` calls.
 public final class AdManager {
     private static let app4BroTag = "app4bro"
+    private static let TAG = "AdManager" // matches Android Log.d(TAG, ...) prefix
 
     private let reportManager: ReportManager
     private let session: URLSession
@@ -35,6 +36,7 @@ public final class AdManager {
             dict[keys[i].lowercased()] = keys[i + 1]
         }
         guard let appId = dict[Self.app4BroTag] else {
+            Log.e(Self.TAG, "No App4Bro key specified for AdManager!")
             fatalError("No App4Bro key specified for AdManager!")
         }
         self.keys = dict
@@ -45,6 +47,7 @@ public final class AdManager {
         cfg.timeoutIntervalForRequest = 5
         self.session = URLSession(configuration: cfg)
 
+        Log.d(Self.TAG, "AdManager inited with id \(appId)")
         reportManager.reportEvent("AD_START", parameter: String(Apps4BroSDK.version))
 
         // Auto-register the built-in networks; host can still call `registerAdNetwork`
@@ -94,7 +97,10 @@ public final class AdManager {
     }
 
     private func preInit() {
-        guard let url = URL(string: formatAdRequest()) else {
+        let urlString = formatAdRequest()
+        Log.d(Self.TAG, "We are starting requestAds: \(urlString)")
+        guard let url = URL(string: urlString) else {
+            Log.w(Self.TAG, "Bad URL: \(urlString)")
             DispatchQueue.main.async { self.doInit(data: nil, ok: false) }
             return
         }
@@ -102,25 +108,39 @@ public final class AdManager {
         req.timeoutInterval = 5
         session.dataTask(with: req) { [weak self] data, response, error in
             DispatchQueue.main.async {
+                guard let self = self else { return }
                 let body = data.flatMap { String(data: $0, encoding: .utf8) }
                 let ok = error == nil && (response as? HTTPURLResponse)?.statusCode == 200
-                self?.doInit(data: body, ok: ok)
+                if let err = error {
+                    Log.w(Self.TAG, "Network error: \(err)")
+                } else if let body = body, !body.isEmpty {
+                    Log.d(Self.TAG, "Got response: \(body)")
+                } else {
+                    Log.w(Self.TAG, "Got empty response")
+                }
+                self.doInit(data: body, ok: ok)
             }
         }.resume()
     }
 
     private func doInit(data: String?, ok: Bool) {
+        var fromCache = false
+        var fromFallback = false
         if let body = data, !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             parseAdData(body, save: true)
         }
         // Cached fallback from a previous good fetch.
         if adWrappers == nil {
             if let cached = UserDefaults.standard.string(forKey: Self.app4BroTag + "_" + appId) {
+                Log.d(Self.TAG, "Using cached ad config")
+                fromCache = true
                 parseAdData(cached, save: false)
             }
         }
         // Hard-coded fallback from the constructor keys (each non-app4bro key becomes its own wrapper).
         if adWrappers == nil {
+            Log.d(Self.TAG, "Registering fallback ads")
+            fromFallback = true
             var builder = ""
             var count = 0
             for (k, v) in keys where k != Self.app4BroTag {
@@ -129,11 +149,14 @@ public final class AdManager {
             }
             parseAdData(builder, save: false)
             if adWrappers == nil {
+                Log.w(Self.TAG, "doInit: no wrappers after server/cache/fallback — staying uninitialized")
                 return
             }
         }
         currentWrapper = -1
         inited = true
+        let source = fromCache ? " (from cache)" : (fromFallback ? " (from fallback keys)" : "")
+        Log.d(Self.TAG, "Initializing complete. Networks registered: \(adWrappers?.count ?? 0)\(source)")
         context?.onInited(self)
     }
 
@@ -141,6 +164,8 @@ public final class AdManager {
     private func parseAdData(_ data: String, save: Bool) {
         let parts = data.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
         guard parts.count > 1 else { return }
+
+        Log.d(Self.TAG, "Got \(parts.count / 2) items from server")
 
         var wrappers: [AdWrapper] = []
         var i = 0
@@ -156,6 +181,9 @@ public final class AdManager {
             }
             if let handler = adNetworks[networkSpec] {
                 wrappers.append(AdWrapper(handler: handler, id: parts[i + 1], name: zoneId))
+                Log.d(Self.TAG, "Registered ad network \(networkSpec)[\(parts[i + 1])]")
+            } else {
+                Log.w(Self.TAG, "Failed to register ad network \(networkSpec)")
             }
             i += 2
         }
@@ -163,6 +191,7 @@ public final class AdManager {
         adWrappers = wrappers
         if save {
             UserDefaults.standard.set(data, forKey: Self.app4BroTag + "_" + appId)
+            Log.d(Self.TAG, "Cache refreshed for next launch")
         }
         reportManager.reportEvent("AD_INIT", parameter: String(wrappers.count))
     }
@@ -170,33 +199,52 @@ public final class AdManager {
     // MARK: - Public ad-flow API
 
     public func hideAd() {
-        guard isInited, isAdShown else { return }
+        if !isInited {
+            Log.w(Self.TAG, "hideAd called before initialization!")
+            return
+        }
+        guard isAdShown else { return }
         isAdShown = false
         guard let wrappers = adWrappers, currentWrapper >= 0, currentWrapper < wrappers.count else { return }
+        Log.d(Self.TAG, "hideAd: hiding wrapper \(wrappers[currentWrapper].name)")
         wrappers[currentWrapper].handler.hide()
     }
 
     public func loadAd() {
         guard isInited, let wrappers = adWrappers else {
+            Log.e(Self.TAG, "loadAd called before initialization!")
             fatalError("loadAd called before initialization!")
+        }
+        if isAdShown {
+            Log.w(Self.TAG, "loadAd called while showing")
         }
         currentWrapper += 1
         isAdLoaded = false
         if currentWrapper >= wrappers.count {
+            Log.w(Self.TAG, "loadAd: exhausted all \(wrappers.count) wrappers, giving up")
             currentWrapper = -1
             return
         }
         let wrapper = wrappers[currentWrapper]
         wrapper.callCount += 1
         wrapper.handler.setId(wrapper.id)
+        Log.d(Self.TAG, "loadAd: trying wrapper \(wrapper.name) (\(currentWrapper + 1)/\(wrappers.count))")
         if !wrapper.handler.show(data: wrapper) {
+            Log.w(Self.TAG, "loadAd: wrapper \(wrapper.name) returned false synchronously")
             adError(data: wrapper, error: "Ad wrapper \(wrapper.name) returned false")
         }
     }
 
     public func displayAd() {
-        guard isInited else { fatalError("displayAd called before initialization!") }
-        guard isAdLoaded, let wrappers = adWrappers, currentWrapper >= 0, currentWrapper < wrappers.count else { return }
+        guard isInited else {
+            Log.e(Self.TAG, "displayAd called before initialization!")
+            fatalError("displayAd called before initialization!")
+        }
+        guard isAdLoaded, let wrappers = adWrappers, currentWrapper >= 0, currentWrapper < wrappers.count else {
+            Log.d(Self.TAG, "displayAd: no ad ready (loaded=\(isAdLoaded), idx=\(currentWrapper))")
+            return
+        }
+        Log.d(Self.TAG, "displayAd: presenting wrapper \(wrappers[currentWrapper].name)")
         wrappers[currentWrapper].handler.display()
     }
 
@@ -209,8 +257,10 @@ public final class AdManager {
         if let w = data as? AdWrapper {
             networkName = w.name
             w.successCount += 1
+            Log.d(Self.TAG, "Ad loaded: \(stats(prefix: networkName, w: w))")
             reportManager.reportEvent("AD_LOAD", parameter: stats(prefix: networkName, w: w))
         } else {
+            Log.d(Self.TAG, "Ad loaded: \(networkName)")
             reportManager.reportEvent("AD_LOAD", parameter: "")
         }
     }
@@ -228,8 +278,10 @@ public final class AdManager {
             networkName = w.name
             w.lastError = error
             w.failCount += 1
+            Log.w(Self.TAG, "Ad error: \(stats(prefix: networkName, w: w)) '\(error)'")
             reportManager.reportEvent("AD_ERROR", parameter: "\(stats(prefix: networkName, w: w)) '\(error)'")
         } else {
+            Log.w(Self.TAG, "Ad error: \(networkName) '\(error)'")
             reportManager.reportEvent("AD_ERROR", parameter: "\(networkName) '\(error)'")
         }
     }
@@ -240,8 +292,10 @@ public final class AdManager {
         if let w = data as? AdWrapper {
             networkName = w.name
             w.clickCount += 1
+            Log.d(Self.TAG, "Ad clicked: \(stats(prefix: networkName, w: w))")
             reportManager.reportEvent("AD_CLICK", parameter: stats(prefix: networkName, w: w))
         } else {
+            Log.d(Self.TAG, "Ad clicked: \(networkName)")
             reportManager.reportEvent("AD_CLICK", parameter: networkName)
         }
     }
@@ -253,9 +307,11 @@ public final class AdManager {
         if let w = data as? AdWrapper {
             networkName = w.name
             w.showCount += 1
-            reportManager.reportEvent("AD_SHOW",
-                                      parameter: "\(networkName) [\(w.callCount)/\(w.successCount)/\(w.failCount)/\(w.clickCount)/\(w.showCount)]")
+            let statsStr = "\(networkName) [\(w.callCount)/\(w.successCount)/\(w.failCount)/\(w.clickCount)/\(w.showCount)]"
+            Log.d(Self.TAG, "Ad shown: \(statsStr)")
+            reportManager.reportEvent("AD_SHOW", parameter: statsStr)
         } else {
+            Log.d(Self.TAG, "Ad shown: \(networkName)")
             reportManager.reportEvent("AD_SHOW", parameter: networkName)
         }
     }

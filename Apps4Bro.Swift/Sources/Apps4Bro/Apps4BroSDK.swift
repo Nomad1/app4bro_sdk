@@ -111,11 +111,18 @@ public enum Apps4BroSDK {
         #endif
 
         UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(with: params) { error in
-            guard error == nil else { return }
+            if let error = error {
+                Log.w("Apps4BroSDK", "UMP consent info update failed: \(error)")
+                return
+            }
             let status = UMPConsentInformation.sharedInstance.consentStatus
             guard status == .unknown || status == .required else { return }
             UMPConsentForm.load { form, loadError in
-                guard loadError == nil, let form = form else { return }
+                if let loadError = loadError {
+                    Log.w("Apps4BroSDK", "UMP consent form load failed: \(loadError)")
+                    return
+                }
+                guard let form = form else { return }
                 form.present(from: viewController) { _ in }
             }
         }

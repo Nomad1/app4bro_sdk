@@ -205,6 +205,11 @@ final class HouseBannerView: UIView, WKNavigationDelegate, WKUIDelegate {
     // MARK: - Script-message channel (replaces `app4bro://` scheme)
 
     fileprivate func handleNotify(_ body: String) {
+        // Log every appNotify message so we can see what the creative is telling us.
+        // Same channel feeds HouseNetwork (banner) and HouseInterNetwork (interstitial),
+        // so the prefix calls out which surface received it.
+        let surface = isBanner ? "banner" : "inter"
+        Log.d("HouseNetwork", "appNotify(\(surface)): \(body)")
         switch body {
         case "ready":
             didLoadAd?()
@@ -213,9 +218,10 @@ final class HouseBannerView: UIView, WKNavigationDelegate, WKUIDelegate {
         case "200":
             didClose?()
         default:
-            // Unknown status — log and continue. Server may have added new
-            // values; cascade should not abort over noise.
-            break
+            // Unknown status — server may have added new values; cascade should
+            // not abort over noise. Bump to a warning so unrecognized values
+            // surface in logs even when debug logging is stripped.
+            Log.w("HouseNetwork", "appNotify(\(surface)): unrecognized body '\(body)'")
         }
     }
 
@@ -249,11 +255,15 @@ final class HouseBannerView: UIView, WKNavigationDelegate, WKUIDelegate {
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        didFailWithError?((error as NSError).localizedDescription)
+        let ns = error as NSError
+        Log.w("HouseNetwork", "WebView didFail: \(ns.domain)#\(ns.code) \(ns.localizedDescription) url=\(webView.url?.absoluteString ?? "<nil>")")
+        didFailWithError?(ns.localizedDescription)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        didFailWithError?((error as NSError).localizedDescription)
+        let ns = error as NSError
+        Log.w("HouseNetwork", "WebView didFailProvisional: \(ns.domain)#\(ns.code) \(ns.localizedDescription) url=\(webView.url?.absoluteString ?? "<nil>")")
+        didFailWithError?(ns.localizedDescription)
     }
 
     // MARK: - Helpers

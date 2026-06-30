@@ -4,6 +4,7 @@ import Foundation
 // at 100ms intervals. Swift port uses a serial DispatchQueue + URLSession, which
 // gives equivalent ordering guarantees without a manual sleep loop.
 public final class ReportManager {
+    private static let TAG = "ReportManager"
 
     private struct EventData {
         let event: String
@@ -53,6 +54,7 @@ public final class ReportManager {
     private func send(_ data: EventData) {
         guard let url = URL(string: formatRequest(data)) else {
             // Malformed event — drop it and continue draining.
+            Log.w(Self.TAG, "Malformed event URL, dropping \(data.event)/\(data.id)")
             queue.async { [weak self] in
                 self?.inFlight.removeValue(forKey: data.id)
                 self?.sending = false
@@ -74,8 +76,16 @@ public final class ReportManager {
                     // Match C# WebExceptionStatus.NameResolutionFailure handling:
                     // a DNS miss drops the event silently; any other failure requeues.
                     if let urlErr = error as? URLError, urlErr.code == .cannotFindHost {
+                        Log.w(Self.TAG, "DNS miss for event \(data.event)/\(data.id) — dropping silently")
                         ok = true
                     } else {
+                        if let err = error {
+                            Log.w(Self.TAG, "Network error for event \(data.event)/\(data.id): \(err) — requeueing")
+                        } else if let http = response as? HTTPURLResponse {
+                            Log.w(Self.TAG, "HTTP \(http.statusCode) for event \(data.event)/\(data.id) — requeueing")
+                        } else {
+                            Log.w(Self.TAG, "Unknown failure for event \(data.event)/\(data.id) — requeueing")
+                        }
                         ok = false
                     }
                 }
