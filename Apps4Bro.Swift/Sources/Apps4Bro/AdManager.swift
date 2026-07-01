@@ -56,7 +56,6 @@ public final class AdManager {
         registerAdNetwork(AdMobNetwork(manager: self))
         registerAdNetwork(AdMobBannerNetwork(manager: self))
         registerAdNetwork(HouseNetwork(manager: self))
-        registerAdNetwork(HouseInterNetwork(manager: self))
         registerAdNetwork(DummyNetwork(manager: self))
 
         preInit()
